@@ -2,6 +2,9 @@ CC ?= gcc
 CFLAGS ?= -O2 -Wall -Wextra -fPIC
 LDFLAGS ?= -shared
 
+# Prefer vendored kernel UAPI headers under ./include
+CFLAGS += -Iinclude
+
 LIB_NAME = liblandlock.so
 SRC = liblandlock.c
 OBJ = $(SRC:.c=.o)

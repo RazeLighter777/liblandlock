@@ -54,54 +54,6 @@ static inline int landlock_restrict_self(const int ruleset_fd,
 }
 #endif
 
-#ifndef LANDLOCK_ABI_VERSION
-#define LANDLOCK_ABI_VERSION 1
-#endif
-
-#ifndef LANDLOCK_CREATE_RULESET_ERRATA
-#define LANDLOCK_CREATE_RULESET_ERRATA (1U << 1)
-#endif
-
-#ifndef LANDLOCK_ACCESS_FS_REFER
-#define LANDLOCK_ACCESS_FS_REFER 0
-#endif
-
-#ifndef LANDLOCK_ACCESS_FS_TRUNCATE
-#define LANDLOCK_ACCESS_FS_TRUNCATE 0
-#endif
-
-#ifndef LANDLOCK_ACCESS_FS_IOCTL_DEV
-#define LANDLOCK_ACCESS_FS_IOCTL_DEV 0
-#endif
-
-#ifndef LANDLOCK_ACCESS_NET_BIND_TCP
-#define LANDLOCK_ACCESS_NET_BIND_TCP 0
-#endif
-
-#ifndef LANDLOCK_ACCESS_NET_CONNECT_TCP
-#define LANDLOCK_ACCESS_NET_CONNECT_TCP 0
-#endif
-
-#ifndef LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET
-#define LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET 0
-#endif
-
-#ifndef LANDLOCK_SCOPE_SIGNAL
-#define LANDLOCK_SCOPE_SIGNAL 0
-#endif
-
-#ifndef LANDLOCK_RESTRICT_SELF_LOG_SAME_EXEC_OFF
-#define LANDLOCK_RESTRICT_SELF_LOG_SAME_EXEC_OFF 0
-#endif
-
-#ifndef LANDLOCK_RESTRICT_SELF_LOG_NEW_EXEC_ON
-#define LANDLOCK_RESTRICT_SELF_LOG_NEW_EXEC_ON 0
-#endif
-
-#ifndef LANDLOCK_RESTRICT_SELF_LOG_SUBDOMAINS_OFF
-#define LANDLOCK_RESTRICT_SELF_LOG_SUBDOMAINS_OFF 0
-#endif
-
 struct ll_ruleset
 {
     int ruleset_fd;
@@ -265,7 +217,13 @@ static ll_abi_t ll_resolve_abi(const ll_abi_t abi)
 {
     if (abi == LL_ABI_LATEST)
     {
-        return LANDLOCK_ABI_VERSION;
+        const int ret = landlock_create_ruleset(NULL, 0, LANDLOCK_CREATE_RULESET_VERSION);
+        if (ret < 0)
+        {
+            /* Fallback for kernels without Landlock support (ABI v1 baseline). */
+            return 1;
+        }
+        return ret;
     }
     return abi;
 }
@@ -273,42 +231,18 @@ static ll_abi_t ll_resolve_abi(const ll_abi_t abi)
 static __u64 ll_supported_access_fs(const ll_abi_t abi)
 {
     __u64 mask = 0;
-#ifdef LANDLOCK_ACCESS_FS_EXECUTE
     mask |= LANDLOCK_ACCESS_FS_EXECUTE;
-#endif
-#ifdef LANDLOCK_ACCESS_FS_WRITE_FILE
     mask |= LANDLOCK_ACCESS_FS_WRITE_FILE;
-#endif
-#ifdef LANDLOCK_ACCESS_FS_READ_FILE
     mask |= LANDLOCK_ACCESS_FS_READ_FILE;
-#endif
-#ifdef LANDLOCK_ACCESS_FS_READ_DIR
     mask |= LANDLOCK_ACCESS_FS_READ_DIR;
-#endif
-#ifdef LANDLOCK_ACCESS_FS_REMOVE_DIR
     mask |= LANDLOCK_ACCESS_FS_REMOVE_DIR;
-#endif
-#ifdef LANDLOCK_ACCESS_FS_REMOVE_FILE
     mask |= LANDLOCK_ACCESS_FS_REMOVE_FILE;
-#endif
-#ifdef LANDLOCK_ACCESS_FS_MAKE_CHAR
     mask |= LANDLOCK_ACCESS_FS_MAKE_CHAR;
-#endif
-#ifdef LANDLOCK_ACCESS_FS_MAKE_DIR
     mask |= LANDLOCK_ACCESS_FS_MAKE_DIR;
-#endif
-#ifdef LANDLOCK_ACCESS_FS_MAKE_REG
     mask |= LANDLOCK_ACCESS_FS_MAKE_REG;
-#endif
-#ifdef LANDLOCK_ACCESS_FS_MAKE_SOCK
     mask |= LANDLOCK_ACCESS_FS_MAKE_SOCK;
-#endif
-#ifdef LANDLOCK_ACCESS_FS_MAKE_FIFO
     mask |= LANDLOCK_ACCESS_FS_MAKE_FIFO;
-#endif
-#ifdef LANDLOCK_ACCESS_FS_MAKE_BLOCK
     mask |= LANDLOCK_ACCESS_FS_MAKE_BLOCK;
-#endif
 
     if (abi >= 2)
     {
@@ -373,24 +307,38 @@ static int ll_audit_supported(void)
 #endif
 }
 
-ll_abi_t ll_get_abi_version(void)
+ll_error_t ll_get_abi_version(ll_abi_t *const out_abi)
 {
+    if (!out_abi)
+    {
+        return ll_error_with_errno(EINVAL, LL_ERROR_INVALID_ARGUMENT);
+    }
+
     const int ret = landlock_create_ruleset(NULL, 0, LANDLOCK_CREATE_RULESET_VERSION);
     if (ret < 0)
     {
-        return (ll_abi_t)ll_error_from_create_ruleset_errno(errno);
+        return ll_error_from_create_ruleset_errno(errno);
     }
-    return ret;
+
+    *out_abi = ret;
+    return LL_ERROR_OK;
 }
 
-int ll_get_errata(void)
+ll_error_t ll_get_errata(int *const out_errata)
 {
+    if (!out_errata)
+    {
+        return ll_error_with_errno(EINVAL, LL_ERROR_INVALID_ARGUMENT);
+    }
+
     const int ret = landlock_create_ruleset(NULL, 0, LANDLOCK_CREATE_RULESET_ERRATA);
     if (ret < 0)
     {
-        return (int)ll_error_from_create_ruleset_errno(errno);
+        return ll_error_from_create_ruleset_errno(errno);
     }
-    return ret;
+
+    *out_errata = ret;
+    return LL_ERROR_OK;
 }
 
 ll_ruleset_attr_t ll_ruleset_attr_make(const ll_abi_t abi,
@@ -641,7 +589,6 @@ ll_error_t ll_ruleset_add_net_port(const ll_ruleset_t *const ruleset,
                                    const __u64 access_masks,
                                    const __u32 flags)
 {
-#ifdef LANDLOCK_RULE_NET_PORT
     if (!ruleset)
     {
         return ll_error_with_errno(EINVAL, LL_ERROR_INVALID_ARGUMENT);
@@ -688,13 +635,6 @@ ll_error_t ll_ruleset_add_net_port(const ll_ruleset_t *const ruleset,
         return ll_error_from_add_rule_errno(errno);
     }
     return LL_ERROR_OK;
-#else
-    (void)ruleset;
-    (void)port;
-    (void)access_masks;
-    (void)flags;
-    return ll_error_with_errno(EAFNOSUPPORT, LL_ERROR_ADD_RULE_TCP_UNSUPPORTED);
-#endif
 }
 
 ll_error_t ll_ruleset_enforce(const ll_ruleset_t *const ruleset,

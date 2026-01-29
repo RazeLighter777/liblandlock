@@ -1,5 +1,5 @@
 #pragma once
-#include <linux/landlock.h>
+#include "linux/landlock.h"
 #include <stddef.h>
 
 /**
@@ -203,102 +203,23 @@ typedef enum
     LL_RULESET_ACCESS_CLASS_SCOPE = 2,
 } ll_ruleset_access_class_t;
 
-/* Landlock access bits guarded for older headers. */
-#ifdef LANDLOCK_ACCESS_FS_READ_FILE
+/* Landlock access bits (vendored from the Linux kernel UAPI header). */
 #define LL_ACCESS_FS_READ_FILE_BIT LANDLOCK_ACCESS_FS_READ_FILE
-#else
-#define LL_ACCESS_FS_READ_FILE_BIT (0)
-#endif
-
-#ifdef LANDLOCK_ACCESS_FS_READ_DIR
 #define LL_ACCESS_FS_READ_DIR_BIT LANDLOCK_ACCESS_FS_READ_DIR
-#else
-#define LL_ACCESS_FS_READ_DIR_BIT (0)
-#endif
-
-#ifdef LANDLOCK_ACCESS_FS_WRITE_FILE
 #define LL_ACCESS_FS_WRITE_FILE_BIT LANDLOCK_ACCESS_FS_WRITE_FILE
-#else
-#define LL_ACCESS_FS_WRITE_FILE_BIT (0)
-#endif
-
-#ifdef LANDLOCK_ACCESS_FS_REMOVE_DIR
 #define LL_ACCESS_FS_REMOVE_DIR_BIT LANDLOCK_ACCESS_FS_REMOVE_DIR
-#else
-#define LL_ACCESS_FS_REMOVE_DIR_BIT (0)
-#endif
-
-#ifdef LANDLOCK_ACCESS_FS_REMOVE_FILE
 #define LL_ACCESS_FS_REMOVE_FILE_BIT LANDLOCK_ACCESS_FS_REMOVE_FILE
-#else
-#define LL_ACCESS_FS_REMOVE_FILE_BIT (0)
-#endif
-
-#ifdef LANDLOCK_ACCESS_FS_MAKE_CHAR
 #define LL_ACCESS_FS_MAKE_CHAR_BIT LANDLOCK_ACCESS_FS_MAKE_CHAR
-#else
-#define LL_ACCESS_FS_MAKE_CHAR_BIT (0)
-#endif
-
-#ifdef LANDLOCK_ACCESS_FS_MAKE_DIR
 #define LL_ACCESS_FS_MAKE_DIR_BIT LANDLOCK_ACCESS_FS_MAKE_DIR
-#else
-#define LL_ACCESS_FS_MAKE_DIR_BIT (0)
-#endif
-
-#ifdef LANDLOCK_ACCESS_FS_MAKE_REG
 #define LL_ACCESS_FS_MAKE_REG_BIT LANDLOCK_ACCESS_FS_MAKE_REG
-#else
-#define LL_ACCESS_FS_MAKE_REG_BIT (0)
-#endif
-
-#ifdef LANDLOCK_ACCESS_FS_MAKE_SOCK
 #define LL_ACCESS_FS_MAKE_SOCK_BIT LANDLOCK_ACCESS_FS_MAKE_SOCK
-#else
-#define LL_ACCESS_FS_MAKE_SOCK_BIT (0)
-#endif
-
-#ifdef LANDLOCK_ACCESS_FS_MAKE_FIFO
 #define LL_ACCESS_FS_MAKE_FIFO_BIT LANDLOCK_ACCESS_FS_MAKE_FIFO
-#else
-#define LL_ACCESS_FS_MAKE_FIFO_BIT (0)
-#endif
-
-#ifdef LANDLOCK_ACCESS_FS_MAKE_BLOCK
 #define LL_ACCESS_FS_MAKE_BLOCK_BIT LANDLOCK_ACCESS_FS_MAKE_BLOCK
-#else
-#define LL_ACCESS_FS_MAKE_BLOCK_BIT (0)
-#endif
-
-#ifdef LANDLOCK_ACCESS_FS_MAKE_SYM
 #define LL_ACCESS_FS_MAKE_SYM_BIT LANDLOCK_ACCESS_FS_MAKE_SYM
-#else
-#define LL_ACCESS_FS_MAKE_SYM_BIT (0)
-#endif
-
-#ifdef LANDLOCK_ACCESS_FS_REFER
 #define LL_ACCESS_FS_REFER_BIT LANDLOCK_ACCESS_FS_REFER
-#else
-#define LL_ACCESS_FS_REFER_BIT (0)
-#endif
-
-#ifdef LANDLOCK_ACCESS_FS_EXECUTE
 #define LL_ACCESS_FS_EXECUTE_BIT LANDLOCK_ACCESS_FS_EXECUTE
-#else
-#define LL_ACCESS_FS_EXECUTE_BIT (0)
-#endif
-
-#ifdef LANDLOCK_ACCESS_NET_CONNECT_TCP
 #define LL_ACCESS_NET_CONNECT_TCP_BIT LANDLOCK_ACCESS_NET_CONNECT_TCP
-#else
-#define LL_ACCESS_NET_CONNECT_TCP_BIT (0)
-#endif
-
-#ifdef LANDLOCK_ACCESS_NET_BIND_TCP
 #define LL_ACCESS_NET_BIND_TCP_BIT LANDLOCK_ACCESS_NET_BIND_TCP
-#else
-#define LL_ACCESS_NET_BIND_TCP_BIT (0)
-#endif
 
 /**
  * @brief Convenience filesystem read access group.
@@ -354,9 +275,11 @@ typedef struct
 /**
  * @brief Query the Landlock ABI version supported by the running kernel.
  *
- * @return ABI version on success, or a negative @ref ll_error_t on failure.
+ * @param out_abi Output ABI version on success.
+ * @return LL_ERROR_OK on success, negative @ref ll_error_t on failure.
  *
- * @retval >=1 ABI version supported by the running kernel.
+ * @retval LL_ERROR_OK Success.
+ * @retval LL_ERROR_INVALID_ARGUMENT Invalid argument (e.g., NULL output pointer).
  * @retval LL_ERROR_RULESET_CREATE_DISABLED Landlock is supported but disabled at boot time.
  * @retval LL_ERROR_RULESET_CREATE_INVALID Invalid flags/access/size passed to ruleset creation.
  * @retval LL_ERROR_RULESET_CREATE_SIZE_TOO_BIG Ruleset attribute size too big.
@@ -365,14 +288,16 @@ typedef struct
  * @retval LL_ERROR_UNSUPPORTED_SYSCALL Required syscall not available.
  * @retval LL_ERROR_SYSTEM Other system error.
  */
-ll_abi_t ll_get_abi_version(void);
+ll_error_t ll_get_abi_version(ll_abi_t *const out_abi);
 
 /**
  * @brief Query Landlock errata bitmask supported by the running kernel.
  *
- * @return Errata bitmask on success, or a negative @ref ll_error_t on failure.
+ * @param out_errata Output errata bitmask on success.
+ * @return LL_ERROR_OK on success, negative @ref ll_error_t on failure.
  *
- * @retval >=0 Errata bitmask supported by the running kernel.
+ * @retval LL_ERROR_OK Success.
+ * @retval LL_ERROR_INVALID_ARGUMENT Invalid argument (e.g., NULL output pointer).
  * @retval LL_ERROR_RULESET_CREATE_DISABLED Landlock is supported but disabled at boot time.
  * @retval LL_ERROR_RULESET_CREATE_INVALID Invalid flags/access/size passed to ruleset creation.
  * @retval LL_ERROR_RULESET_CREATE_SIZE_TOO_BIG Ruleset attribute size too big.
@@ -381,7 +306,7 @@ ll_abi_t ll_get_abi_version(void);
  * @retval LL_ERROR_UNSUPPORTED_SYSCALL Required syscall not available.
  * @retval LL_ERROR_SYSTEM Other system error.
  */
-int ll_get_errata(void);
+ll_error_t ll_get_errata(int *const out_errata);
 
 /**
  * @brief Initialize a ruleset attribute container.

@@ -45,21 +45,16 @@ static void test_create_attr_defaults(void)
 
 static void test_handle_access_fs_strict(void)
 {
-#if defined(LANDLOCK_ACCESS_FS_REFER) && LANDLOCK_ACCESS_FS_REFER != 0
     ll_ruleset_attr_t attr = ll_ruleset_attr_make(1, LL_ABI_COMPAT_STRICT);
     ll_error_t ret = ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_FS, LANDLOCK_ACCESS_FS_REFER);
     if (ret != LL_ERROR_UNSUPPORTED_FEATURE)
     {
         fail("strict mode should reject unsupported FS access");
     }
-#else
-    (void)0;
-#endif
 }
 
 static void test_handle_access_fs_best_effort(void)
 {
-#if defined(LANDLOCK_ACCESS_FS_REFER) && LANDLOCK_ACCESS_FS_REFER != 0
     ll_ruleset_attr_t attr = ll_ruleset_attr_make(1, LL_ABI_COMPAT_BEST_EFFORT);
     ll_error_t ret = ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_FS, LANDLOCK_ACCESS_FS_REFER);
     if (ret != 0)
@@ -70,28 +65,20 @@ static void test_handle_access_fs_best_effort(void)
     {
         fail("best-effort should mask unsupported FS access");
     }
-#else
-    (void)0;
-#endif
 }
 
 static void test_handle_access_net_strict(void)
 {
-#if defined(LANDLOCK_ACCESS_NET_BIND_TCP) && LANDLOCK_ACCESS_NET_BIND_TCP != 0
     ll_ruleset_attr_t attr = ll_ruleset_attr_make(3, LL_ABI_COMPAT_STRICT);
     ll_error_t ret = ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_NET, LANDLOCK_ACCESS_NET_BIND_TCP);
     if (ret != LL_ERROR_UNSUPPORTED_FEATURE)
     {
         fail("strict mode should reject unsupported NET access");
     }
-#else
-    (void)0;
-#endif
 }
 
 static void test_scope_strict(void)
 {
-#if defined(LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET) && LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET != 0
     ll_ruleset_attr_t attr = ll_ruleset_attr_make(5, LL_ABI_COMPAT_STRICT);
     ll_error_t ret = ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_SCOPE,
                                             LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET);
@@ -99,9 +86,6 @@ static void test_scope_strict(void)
     {
         fail("strict mode should reject unsupported scope");
     }
-#else
-    (void)0;
-#endif
 }
 
 static void test_restrict_self_flags(void)
@@ -288,38 +272,42 @@ static void test_ruleset_enforcement(void)
 
 static void test_abi_version_query(void)
 {
-    ll_abi_t abi = ll_get_abi_version();
-    if (abi < 0)
+    ll_abi_t abi = 0;
+    const ll_error_t err = ll_get_abi_version(&abi);
+    if (err < 0)
     {
-        if (abi == LL_ERROR_UNSUPPORTED_SYSCALL ||
-            abi == LL_ERROR_RULESET_CREATE_DISABLED ||
-            abi == LL_ERROR_SYSTEM)
+        if (err == LL_ERROR_UNSUPPORTED_SYSCALL ||
+            err == LL_ERROR_RULESET_CREATE_DISABLED ||
+            err == LL_ERROR_SYSTEM)
         {
             printf("SKIP: kernel does not support Landlock\n");
             return;
         }
         char msg[128];
-        snprintf(msg, sizeof(msg), "unexpected ABI query failure: %s", ll_error_string((ll_error_t)abi));
+        snprintf(msg, sizeof(msg), "unexpected ABI query failure: %s", ll_error_string(err));
         fail(msg);
     }
+    (void)abi;
 }
 
 static void test_errata_query(void)
 {
-    int errata = ll_get_errata();
-    if (errata < 0)
+    int errata = 0;
+    const ll_error_t err = ll_get_errata(&errata);
+    if (err < 0)
     {
-        if (errata == LL_ERROR_UNSUPPORTED_SYSCALL ||
-            errata == LL_ERROR_RULESET_CREATE_DISABLED ||
-            errata == LL_ERROR_SYSTEM)
+        if (err == LL_ERROR_UNSUPPORTED_SYSCALL ||
+            err == LL_ERROR_RULESET_CREATE_DISABLED ||
+            err == LL_ERROR_SYSTEM)
         {
             printf("SKIP: kernel does not support Landlock\n");
             return;
         }
         char msg[128];
-        snprintf(msg, sizeof(msg), "unexpected errata query failure: %s", ll_error_string((ll_error_t)errata));
+        snprintf(msg, sizeof(msg), "unexpected errata query failure: %s", ll_error_string(err));
         fail(msg);
     }
+    (void)errata;
 }
 
 int main(void)
