@@ -123,15 +123,21 @@ Build (example):
 
 ### Header-only style
 
+First, ensure linux headers are installed and are in your include path.
+
 1. Generate the amalgamation:
 
 - `make header-only`
+
+2 Copy the header into your project:
+
+- `cp dist/liblandlock.h <your project>`
 
 2. In exactly one translation unit, define `LIBLANDLOCK_IMPLEMENTATION` before including the file:
 
 ```c
 #define LIBLANDLOCK_IMPLEMENTATION
-#include "dist/liblandlock.h"
+#include "liblandlock.h"
 
 /* ...same usage as above... */
 ```
