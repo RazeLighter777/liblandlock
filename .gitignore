@@ -2,4 +2,5 @@
 .envrc
 *.o
 *.so
-tests/test_liblandlock
+tests/test_liblandlock*
+dist/

@@ -1,4 +1,9 @@
+#ifdef LL_TEST_HEADER_ONLY
+#define LIBLANDLOCK_IMPLEMENTATION
+#include "../dist/liblandlock.h"
+#else
 #include "../liblandlock.h"
+#endif
 
 #include <assert.h>
 #include <errno.h>
