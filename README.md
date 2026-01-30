@@ -48,7 +48,7 @@ Build (example):
 
 ## Requirements
 
-Build requirements (no specific OS or package manager assumed):
+Build requirements:
 
 - A C toolchain (a C compiler + linker)
 - `make`
@@ -56,8 +56,7 @@ Build requirements (no specific OS or package manager assumed):
 
 Runtime requirements:
 
-- Landlock is a Linux feature. Building the library does not require Landlock support at runtime, but actually applying a sandbox does.
-- The test suite will automatically skip sandboxing assertions if the running kernel doesn’t support Landlock or if it is disabled.
+Landlock enabled and running kernel >=5.13
 
 ## Use this in your project
 
@@ -122,14 +121,6 @@ This option builds a shared library and links to it.
 - `make`
 
 3. Include `liblandlock.h` in your project and link with `liblandlock.so`.
-
-## What’s inside the header-only build
-
-The header-only build output contains:
-
-- The vendored Landlock UAPI header inlined (so consumers don’t need to install Landlock headers)
-- The public API from `liblandlock.h`
-- The implementation from `liblandlock.c` behind `#ifdef LIBLANDLOCK_IMPLEMENTATION`
 
 ## Tests
 
