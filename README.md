@@ -1,8 +1,8 @@
 # liblandlock
 
-Small C library providing a friendlier API around the Linux Landlock LSM.
+Ergonomic C library for Landlock sandboxing.
 
-## Usage
+## Quick start
 
 ```c
 #include "liblandlock.h"
@@ -59,33 +59,71 @@ Runtime requirements:
 - Landlock is a Linux feature. Building the library does not require Landlock support at runtime, but actually applying a sandbox does.
 - The test suite will automatically skip sandboxing assertions if the running kernel doesn’t support Landlock or if it is disabled.
 
-## Build
+## Use this in your project
 
-### Vendored Library (directly including in your build)
+Choose one of the three integration styles below.
 
-- Make sure linux headers are installed.
+### 1) Header-only amalgamation (`dist/liblandlock.h`) — recommended
 
-- Add liblandlock.c/h and include/linux/landlock.h to your project. You may need to adjust the include path here:
+This option is a single-header distribution with optional implementation.
+
+1. Build the amalgamated header:
+
+- `make header-only`
+
+2. Copy it into your project:
+
+- `cp dist/liblandlock.h <your project>`
+
+3. In exactly one translation unit, define `LIBLANDLOCK_IMPLEMENTATION` before including the header:
+
+```c
+#define LIBLANDLOCK_IMPLEMENTATION
+#include "liblandlock.h"
+
+/* ...same usage as above... */
+```
+
+Example build:
+
+- `cc -I. -o demo demo.c`
+
+### 2) Vendored sources
+
+This option adds the sources directly to your build.
+
+1. Ensure Linux headers are installed on the build machine.
+2. Add the following files to your project:
+
+- liblandlock.c
+- liblandlock.h
+- include/linux/landlock.h
+
+3. Ensure your include path allows this include in liblandlock.h to resolve:
 
 ```
 liblandlock.h
 2:#include "linux/landlock.h"
 ```
 
-### Shared library (`liblandlock.so`)
+4. Build and link the library together with your code.
 
-- Make sure linux headers are installed.
+Example:
 
-- Build:
-  - `make`
+- `cc -Iinclude -o demo demo.c liblandlock.c`
 
-This builds `liblandlock.so` from `liblandlock.c`.
+### 3) Shared library (`liblandlock.so`)
 
-Include liblandlock.h in your project.
+This option builds a shared library and links to it.
 
-### Header-only amalgamation (`dist/liblandlock.h`)
+1. Ensure Linux headers are installed on the build machine.
+2. Build the shared library:
 
-- Make sure linux headers are installed.
+- `make`
+
+3. Include `liblandlock.h` in your project and link with `liblandlock.so`.
+
+## What’s inside the header-only build
 
 The header-only build output contains:
 
@@ -102,31 +140,6 @@ This builds and runs two test binaries:
 - A regular build using `liblandlock.c` + `liblandlock.h`
 - A header-only build using `dist/liblandlock.h`
 - `#pragma once` at the top
-
-### Header-only style
-
-First, ensure linux headers are installed and are in your include path.
-
-1. Generate the amalgamation:
-
-- `make header-only`
-
-2 Copy the header into your project:
-
-- `cp dist/liblandlock.h <your project>`
-
-2. In exactly one translation unit, define `LIBLANDLOCK_IMPLEMENTATION` before including the file:
-
-```c
-#define LIBLANDLOCK_IMPLEMENTATION
-#include "liblandlock.h"
-
-/* ...same usage as above... */
-```
-
-Build (example):
-
-- `cc -I. -o demo demo.c`
 
 ## More examples
 
