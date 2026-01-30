@@ -64,35 +64,24 @@ struct ll_ruleset
     __u64 handled_access_scope;
 };
 
-static ll_error_t ll_error_with_errno(const int err, const ll_error_t code)
-{
-    (void)err;
-    return code;
-}
-
-static ll_error_t ll_error_system(const int err)
-{
-    return ll_error_with_errno(err, LL_ERROR_SYSTEM);
-}
-
 static ll_error_t ll_error_from_create_ruleset_errno(const int err)
 {
     switch (err)
     {
     case EOPNOTSUPP:
-        return ll_error_with_errno(err, LL_ERROR_RULESET_CREATE_DISABLED);
+        return LL_ERROR_RULESET_CREATE_DISABLED;
     case EINVAL:
-        return ll_error_with_errno(err, LL_ERROR_RULESET_CREATE_INVALID);
+        return LL_ERROR_RULESET_CREATE_INVALID;
     case E2BIG:
-        return ll_error_with_errno(err, LL_ERROR_RULESET_CREATE_SIZE_TOO_BIG);
+        return LL_ERROR_RULESET_CREATE_SIZE_TOO_BIG;
     case EFAULT:
-        return ll_error_with_errno(err, LL_ERROR_RULESET_CREATE_BAD_ADDRESS);
+        return LL_ERROR_RULESET_CREATE_BAD_ADDRESS;
     case ENOMSG:
-        return ll_error_with_errno(err, LL_ERROR_RULESET_CREATE_EMPTY_ACCESS);
+        return LL_ERROR_RULESET_CREATE_EMPTY_ACCESS;
     case ENOSYS:
-        return ll_error_with_errno(err, LL_ERROR_UNSUPPORTED_SYSCALL);
+        return LL_ERROR_UNSUPPORTED_SYSCALL;
     default:
-        return ll_error_system(err);
+        return LL_ERROR_SYSTEM;
     }
 }
 
@@ -101,25 +90,25 @@ static ll_error_t ll_error_from_add_rule_errno(const int err)
     switch (err)
     {
     case EAFNOSUPPORT:
-        return ll_error_with_errno(err, LL_ERROR_ADD_RULE_TCP_UNSUPPORTED);
+        return LL_ERROR_ADD_RULE_TCP_UNSUPPORTED;
     case EOPNOTSUPP:
-        return ll_error_with_errno(err, LL_ERROR_ADD_RULE_DISABLED);
+        return LL_ERROR_ADD_RULE_DISABLED;
     case EINVAL:
-        return ll_error_with_errno(err, LL_ERROR_ADD_RULE_INCONSISTENT_ACCESS);
+        return LL_ERROR_ADD_RULE_INCONSISTENT_ACCESS;
     case ENOMSG:
-        return ll_error_with_errno(err, LL_ERROR_ADD_RULE_EMPTY_ACCESS);
+        return LL_ERROR_ADD_RULE_EMPTY_ACCESS;
     case EBADF:
-        return ll_error_with_errno(err, LL_ERROR_ADD_RULE_BAD_FD);
+        return LL_ERROR_ADD_RULE_BAD_FD;
     case EBADFD:
-        return ll_error_with_errno(err, LL_ERROR_ADD_RULE_BAD_FD_TYPE);
+        return LL_ERROR_ADD_RULE_BAD_FD_TYPE;
     case EPERM:
-        return ll_error_with_errno(err, LL_ERROR_ADD_RULE_NO_WRITE);
+        return LL_ERROR_ADD_RULE_NO_WRITE;
     case EFAULT:
-        return ll_error_with_errno(err, LL_ERROR_ADD_RULE_BAD_ADDRESS);
+        return LL_ERROR_ADD_RULE_BAD_ADDRESS;
     case ENOSYS:
-        return ll_error_with_errno(err, LL_ERROR_UNSUPPORTED_SYSCALL);
+        return LL_ERROR_UNSUPPORTED_SYSCALL;
     default:
-        return ll_error_system(err);
+        return LL_ERROR_SYSTEM;
     }
 }
 
@@ -128,21 +117,21 @@ static ll_error_t ll_error_from_restrict_errno(const int err)
     switch (err)
     {
     case EOPNOTSUPP:
-        return ll_error_with_errno(err, LL_ERROR_RESTRICT_DISABLED);
+        return LL_ERROR_RESTRICT_DISABLED;
     case EINVAL:
-        return ll_error_with_errno(err, LL_ERROR_RESTRICT_FLAGS_INVALID);
+        return LL_ERROR_RESTRICT_FLAGS_INVALID;
     case EBADF:
-        return ll_error_with_errno(err, LL_ERROR_RESTRICT_BAD_FD);
+        return LL_ERROR_RESTRICT_BAD_FD;
     case EBADFD:
-        return ll_error_with_errno(err, LL_ERROR_RESTRICT_BAD_FD_TYPE);
+        return LL_ERROR_RESTRICT_BAD_FD_TYPE;
     case EPERM:
-        return ll_error_with_errno(err, LL_ERROR_RESTRICT_NOT_PERMITTED);
+        return LL_ERROR_RESTRICT_NOT_PERMITTED;
     case E2BIG:
-        return ll_error_with_errno(err, LL_ERROR_RESTRICT_LIMIT_REACHED);
+        return LL_ERROR_RESTRICT_LIMIT_REACHED;
     case ENOSYS:
-        return ll_error_with_errno(err, LL_ERROR_UNSUPPORTED_SYSCALL);
+        return LL_ERROR_UNSUPPORTED_SYSCALL;
     default:
-        return ll_error_system(err);
+        return LL_ERROR_SYSTEM;
     }
 }
 
@@ -313,7 +302,7 @@ ll_error_t ll_get_abi_version(ll_abi_t *const out_abi)
 {
     if (!out_abi)
     {
-        return ll_error_with_errno(EINVAL, LL_ERROR_INVALID_ARGUMENT);
+        return LL_ERROR_INVALID_ARGUMENT;
     }
 
     const int ret = landlock_create_ruleset(NULL, 0, LANDLOCK_CREATE_RULESET_VERSION);
@@ -330,7 +319,7 @@ ll_error_t ll_get_errata(int *const out_errata)
 {
     if (!out_errata)
     {
-        return ll_error_with_errno(EINVAL, LL_ERROR_INVALID_ARGUMENT);
+        return LL_ERROR_INVALID_ARGUMENT;
     }
 
     const int ret = landlock_create_ruleset(NULL, 0, LANDLOCK_CREATE_RULESET_ERRATA);
@@ -358,7 +347,7 @@ ll_error_t ll_ruleset_attr_add_flags(ll_ruleset_attr_t *const ruleset_attr,
 {
     if (!ruleset_attr)
     {
-        return ll_error_with_errno(EINVAL, LL_ERROR_INVALID_ARGUMENT);
+        return LL_ERROR_INVALID_ARGUMENT;
     }
 
     ruleset_attr->flags |= flags;
@@ -379,7 +368,7 @@ ll_ruleset_result_t ll_ruleset_create_result(const ll_ruleset_attr_t ruleset_att
 
     if (ruleset_attr.compat_mode == LL_ABI_COMPAT_STRICT && kernel_abi < policy_abi)
     {
-        out.err = ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RULESET_INCOMPATIBLE);
+        out.err = LL_ERROR_RULESET_INCOMPATIBLE;
         return out;
     }
 
@@ -402,12 +391,6 @@ ll_ruleset_result_t ll_ruleset_create_result(const ll_ruleset_attr_t ruleset_att
     attr.handled_access_net &= net_mask;
     attr.scoped &= scope_mask;
 
-    if (attr.handled_access_fs == 0 && attr.handled_access_net == 0 && attr.scoped == 0)
-    {
-        out.err = ll_error_with_errno(ENOMSG, LL_ERROR_RULESET_CREATE_EMPTY_ACCESS);
-        return out;
-    }
-
     const int create_flags = (int)(ruleset_attr.flags);
     const int ruleset_fd = landlock_create_ruleset(&attr, sizeof(attr), create_flags);
     if (ruleset_fd < 0)
@@ -420,7 +403,7 @@ ll_ruleset_result_t ll_ruleset_create_result(const ll_ruleset_attr_t ruleset_att
     if (!ruleset)
     {
         close(ruleset_fd);
-        out.err = ll_error_with_errno(ENOMEM, LL_ERROR_OUT_OF_MEMORY);
+        out.err = LL_ERROR_OUT_OF_MEMORY;
         return out;
     }
     ruleset->ruleset_fd = ruleset_fd;
@@ -438,7 +421,7 @@ ll_ruleset_result_t ll_ruleset_create_result(const ll_ruleset_attr_t ruleset_att
             scope_before != ruleset->handled_access_scope)
         {
             ll_ruleset_close(ruleset);
-            out.err = ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT);
+            out.err = LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT;
             return out;
         }
         out.ruleset = ruleset;
@@ -479,14 +462,10 @@ ll_error_t ll_ruleset_add_path(const ll_ruleset_t *const ruleset,
 {
     if (!ruleset || ruleset->ruleset_fd < 0 || !path)
     {
-        return ll_error_with_errno(EINVAL, LL_ERROR_INVALID_ARGUMENT);
+        return LL_ERROR_INVALID_ARGUMENT;
     }
 
     const int dir_fd = open(path, O_PATH | O_CLOEXEC);
-    if (dir_fd < 0)
-    {
-        return ll_error_system(errno);
-    }
 
     const int ret = ll_ruleset_add_path_fd(ruleset, dir_fd, access_masks, flags);
     close(dir_fd);
@@ -500,43 +479,7 @@ ll_error_t ll_ruleset_add_path_fd(const ll_ruleset_t *const ruleset,
 {
     if (!ruleset)
     {
-        return ll_error_with_errno(EINVAL, LL_ERROR_INVALID_ARGUMENT);
-    }
-
-    if (ruleset->ruleset_fd < 0 || dir_fd < 0)
-    {
-        return ll_error_with_errno(EBADF, LL_ERROR_ADD_RULE_BAD_FD);
-    }
-
-    if (flags != 0)
-    {
-        return ll_error_with_errno(EINVAL, LL_ERROR_ADD_RULE_FLAGS_INVALID);
-    }
-
-    if (access_masks == 0)
-    {
-        return ll_error_with_errno(ENOMSG, LL_ERROR_ADD_RULE_EMPTY_ACCESS);
-    }
-
-    if ((access_masks & ~ruleset->handled_access_fs) != 0)
-    {
-        return ll_error_with_errno(EINVAL, LL_ERROR_ADD_RULE_INCONSISTENT_ACCESS);
-    }
-
-    const __u64 dir_only_bits = LANDLOCK_ACCESS_FS_READ_DIR |
-                                LANDLOCK_ACCESS_FS_REMOVE_DIR |
-                                LANDLOCK_ACCESS_FS_MAKE_DIR;
-    if ((access_masks & dir_only_bits) != 0)
-    {
-        struct stat st;
-        if (fstat(dir_fd, &st) != 0)
-        {
-            return ll_error_system(errno);
-        }
-        if (!S_ISDIR(st.st_mode))
-        {
-            return ll_error_with_errno(EINVAL, LL_ERROR_ADD_RULE_ACCESS_NOT_APPLICABLE);
-        }
+        return LL_ERROR_INVALID_ARGUMENT;
     }
 
     struct landlock_path_beneath_attr path_attr = {
@@ -560,37 +503,7 @@ ll_error_t ll_ruleset_add_net_port(const ll_ruleset_t *const ruleset,
 {
     if (!ruleset)
     {
-        return ll_error_with_errno(EINVAL, LL_ERROR_INVALID_ARGUMENT);
-    }
-
-    if (ruleset->ruleset_fd < 0)
-    {
-        return ll_error_with_errno(EBADF, LL_ERROR_ADD_RULE_BAD_FD);
-    }
-
-    if (flags != 0)
-    {
-        return ll_error_with_errno(EINVAL, LL_ERROR_ADD_RULE_FLAGS_INVALID);
-    }
-
-    if (access_masks == 0)
-    {
-        return ll_error_with_errno(ENOMSG, LL_ERROR_ADD_RULE_EMPTY_ACCESS);
-    }
-
-    if (port > 65535)
-    {
-        return ll_error_with_errno(EINVAL, LL_ERROR_ADD_RULE_PORT_OUT_OF_RANGE);
-    }
-
-    if (ruleset->handled_access_net == 0)
-    {
-        return ll_error_with_errno(EAFNOSUPPORT, LL_ERROR_ADD_RULE_TCP_UNSUPPORTED);
-    }
-
-    if ((access_masks & ~ruleset->handled_access_net) != 0)
-    {
-        return ll_error_with_errno(EINVAL, LL_ERROR_ADD_RULE_INCONSISTENT_ACCESS);
+        return LL_ERROR_INVALID_ARGUMENT;
     }
 
     struct landlock_net_port_attr net_attr = {
@@ -611,41 +524,28 @@ ll_error_t ll_ruleset_enforce(const ll_ruleset_t *const ruleset,
 {
     if (!ruleset)
     {
-        return ll_error_with_errno(EINVAL, LL_ERROR_INVALID_ARGUMENT);
-    }
-
-    if (ruleset->ruleset_fd < 0)
-    {
-        return ll_error_with_errno(EBADF, LL_ERROR_RESTRICT_BAD_FD);
-    }
-
-    const __u32 known_flags = LANDLOCK_RESTRICT_SELF_LOG_SAME_EXEC_OFF |
-                              LANDLOCK_RESTRICT_SELF_LOG_NEW_EXEC_ON |
-                              LANDLOCK_RESTRICT_SELF_LOG_SUBDOMAINS_OFF;
-    if ((flags & ~known_flags) != 0)
-    {
-        return ll_error_with_errno(EINVAL, LL_ERROR_RESTRICT_FLAGS_INVALID);
+        return LL_ERROR_INVALID_ARGUMENT;
     }
 
     const __u32 supported = ll_supported_restrict_self_flags(ruleset->abi);
-    __u32 masked_flags = flags & supported;
-    if (ruleset->compat_mode == LL_ABI_COMPAT_STRICT && masked_flags != flags)
+    if ((flags & ~supported) != 0)
     {
-        return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT);
+        return LL_ERROR_RESTRICT_FLAGS_INVALID;
     }
 
+    __u32 masked_flags = flags;
     if (masked_flags != 0 && !ll_audit_supported())
     {
         if (ruleset->compat_mode == LL_ABI_COMPAT_STRICT)
         {
-            return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT);
+            return LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT;
         }
         masked_flags = 0;
     }
 
     if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0))
     {
-        return ll_error_system(errno);
+        return LL_ERROR_SYSTEM;
     }
 
     const int ret = landlock_restrict_self(ruleset->ruleset_fd, masked_flags);

@@ -158,6 +158,7 @@ static void test_restrict_self_flags(void)
     if (ret != LL_ERROR_RESTRICT_FLAGS_INVALID)
     {
         fail("invalid restrict-self flags should be rejected");
+        printf("got %s (%d)\n", ll_error_string(ret), ret);
     }
 
     ll_ruleset_close(ruleset);
