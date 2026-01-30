@@ -2,12 +2,50 @@
 
 Small C library providing a friendlier API around the Linux Landlock LSM.
 
-This repo produces two primary “build outputs”:
+## Usage
 
-- A shared library: `liblandlock.so`
-- A single-file header-only amalgamation: `dist/liblandlock.h`
+```c
+#include "liblandlock.h"
 
-The project vendors a Linux UAPI Landlock header under `include/linux/landlock.h` and uses it by default.
+#include <stdio.h>
+
+int main(void)
+{
+  ll_ruleset_attr_t attr = ll_ruleset_attr_defaults();
+  (void)ll_ruleset_attr_handle_fs(&attr, LL_ACCESS_GROUP_FS_READ);
+
+  ll_ruleset_t *ruleset = NULL;
+  ll_error_t err = ll_ruleset_create(&attr, 0, &ruleset);
+  if (LL_ERRORED(err))
+  {
+    fprintf(stderr, "ll_ruleset_create failed: %s (%d)\n", ll_error_string(err), err);
+    return 1;
+  }
+
+  err = ll_ruleset_add_path(ruleset, "/usr", LL_ACCESS_GROUP_FS_READ, 0);
+  if (LL_ERRORED(err))
+  {
+    fprintf(stderr, "ll_ruleset_add_path failed: %s (%d)\n", ll_error_string(err), err);
+    ll_ruleset_close(ruleset);
+    return 1;
+  }
+
+  err = ll_ruleset_enforce(ruleset, 0);
+  if (LL_ERRORED(err))
+  {
+    fprintf(stderr, "ll_ruleset_enforce failed: %s (%d)\n", ll_error_string(err), err);
+    ll_ruleset_close(ruleset);
+    return 1;
+  }
+
+  ll_ruleset_close(ruleset);
+  return 0;
+}
+```
+
+Build (example):
+
+- `cc -Iinclude -o demo demo.c liblandlock.c`
 
 ## Requirements
 
@@ -44,6 +82,8 @@ liblandlock.h
 
 This builds `liblandlock.so` from `liblandlock.c`.
 
+Include liblandlock.h in your project.
+
 ### Header-only amalgamation (`dist/liblandlock.h`)
 
 - Make sure linux headers are installed.
@@ -55,10 +95,6 @@ The header-only build output contains:
 - The public API from `liblandlock.h`
 - The implementation from `liblandlock.c` behind `#ifdef LIBLANDLOCK_IMPLEMENTATION`
 
-Build it with:
-
-- `make header-only`
-
 ## Tests
 
 - `make test`
@@ -67,59 +103,6 @@ This builds and runs two test binaries:
 
 - A regular build using `liblandlock.c` + `liblandlock.h`
 - A header-only build using `dist/liblandlock.h`
-
-## Usage
-
-### Shared-library style (compile the `.c` directly)
-
-This is the simplest approach if you’re just embedding the code:
-
-```c
-#include "liblandlock.h"
-
-#include <stdio.h>
-
-int main(void)
-{
-    ll_ruleset_attr_t attr = ll_ruleset_attr_make(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
-    (void)ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_FS,
-                                LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR);
-
-    ll_ruleset_t *ruleset = NULL;
-    ll_sandbox_result_t result = LL_SANDBOX_RESULT_NOT_SANDBOXED;
-    ll_error_t err = ll_ruleset_create(&attr, 0, &result, &ruleset);
-    if (err != LL_ERROR_OK)
-    {
-        fprintf(stderr, "ll_ruleset_create: %s (%d)\n", ll_error_string(err), err);
-        return 1;
-    }
-
-    /* Example: allow read-only access to /tmp (adjust to your needs). */
-    err = ll_ruleset_add_path(ruleset, "/tmp",
-                              LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR, 0);
-    if (err != LL_ERROR_OK)
-    {
-        fprintf(stderr, "ll_ruleset_add_path: %s (%d)\n", ll_error_string(err), err);
-        ll_ruleset_close(ruleset);
-        return 1;
-    }
-
-    err = ll_ruleset_enforce(ruleset, 0);
-    ll_ruleset_close(ruleset);
-
-    if (err != LL_ERROR_OK)
-    {
-        fprintf(stderr, "ll_ruleset_enforce: %s (%d)\n", ll_error_string(err), err);
-        return 1;
-    }
-
-    return 0;
-}
-```
-
-Build (example):
-
-- `cc -Iinclude -o demo demo.c liblandlock.c`
 
 ### Header-only style
 

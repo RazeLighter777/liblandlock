@@ -52,7 +52,7 @@ static void test_handle_access_fs_strict(void)
 {
     ll_ruleset_attr_t attr = ll_ruleset_attr_make(1, LL_ABI_COMPAT_STRICT);
     ll_error_t ret = ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_FS, LANDLOCK_ACCESS_FS_REFER);
-    if (ret != LL_ERROR_UNSUPPORTED_FEATURE)
+    if (ret != LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT)
     {
         fail("strict mode should reject unsupported FS access");
     }
@@ -76,7 +76,7 @@ static void test_handle_access_net_strict(void)
 {
     ll_ruleset_attr_t attr = ll_ruleset_attr_make(3, LL_ABI_COMPAT_STRICT);
     ll_error_t ret = ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_NET, LANDLOCK_ACCESS_NET_BIND_TCP);
-    if (ret != LL_ERROR_UNSUPPORTED_FEATURE)
+    if (ret != LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT)
     {
         fail("strict mode should reject unsupported NET access");
     }
@@ -87,7 +87,7 @@ static void test_scope_strict(void)
     ll_ruleset_attr_t attr = ll_ruleset_attr_make(5, LL_ABI_COMPAT_STRICT);
     ll_error_t ret = ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_SCOPE,
                                             LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET);
-    if (ret != LL_ERROR_UNSUPPORTED_FEATURE)
+    if (ret != LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT)
     {
         fail("strict mode should reject unsupported scope");
     }

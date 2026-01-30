@@ -58,7 +58,7 @@ int main(void)
 
         ll_ruleset_t *ruleset = NULL;
         ll_error_t err = ll_ruleset_create(&attr, 0, &ruleset);
-        if (err != LL_ERROR_OK)
+        if (LL_ERRORED(err))
         {
             if (err == LL_ERROR_UNSUPPORTED_SYSCALL ||
                 err == LL_ERROR_RULESET_CREATE_DISABLED ||
@@ -72,7 +72,7 @@ int main(void)
         }
 
         err = ll_ruleset_add_path(ruleset, dir, LL_ACCESS_GROUP_FS_READ, 0);
-        if (err != LL_ERROR_OK)
+        if (LL_ERRORED(err))
         {
             fprintf(stderr, "ll_ruleset_add_path failed: %s (%d)\n", ll_error_string(err), err);
             ll_ruleset_close(ruleset);
@@ -80,7 +80,7 @@ int main(void)
         }
 
         err = ll_ruleset_enforce(ruleset, 0);
-        if (err != LL_ERROR_OK)
+        if (LL_ERRORED(err))
         {
             if (err == LL_ERROR_UNSUPPORTED_SYSCALL ||
                 err == LL_ERROR_RESTRICT_DISABLED ||

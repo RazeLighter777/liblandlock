@@ -52,10 +52,6 @@ typedef enum
      */
     LL_ERROR_OUT_OF_MEMORY = -3,
     /**
-     * @brief Requested feature is not supported.
-     */
-    LL_ERROR_UNSUPPORTED_FEATURE = -4,
-    /**
      * @brief Required syscall is not available.
      */
     LL_ERROR_UNSUPPORTED_SYSCALL = -5,
@@ -159,6 +155,8 @@ typedef enum
      */
     LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT = -146,
 } ll_error_t;
+
+#define LL_ERRORED(err) ((err) < LL_ERROR_OK)
 
 /**
  * @brief Map a Landlock error code to a human-readable string.
@@ -303,7 +301,7 @@ static inline ll_ruleset_attr_t ll_ruleset_attr_defaults(void)
  *
  * @retval LL_ERROR_OK Success.
  * @retval LL_ERROR_INVALID_ARGUMENT Invalid argument (e.g., NULL container or unknown access class).
- * @retval LL_ERROR_UNSUPPORTED_FEATURE Requested access is not supported in strict mode.
+ * @retval LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT Requested access not supported in strict mode.
  */
 ll_error_t ll_ruleset_attr_handle(ll_ruleset_attr_t *const ruleset_attr,
                                   ll_ruleset_access_class_t access_class,
@@ -333,7 +331,7 @@ static inline ll_error_t ll_ruleset_attr_handle_net(ll_ruleset_attr_t *const rul
  * @retval LL_ERROR_OK Success.
  * @retval LL_ERROR_INVALID_ARGUMENT Invalid argument (e.g., NULL attributes or output handle).
  * @retval LL_ERROR_RULESET_INCOMPATIBLE Requested ABI is not supported in strict mode.
- * @retval LL_ERROR_UNSUPPORTED_FEATURE Requested access not supported in strict mode.
+ * @retval LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT Requested access not supported in strict mode.
  * @retval LL_ERROR_OUT_OF_MEMORY Allocation failed.
  * @retval LL_ERROR_RULESET_CREATE_DISABLED Landlock is supported but disabled at boot time.
  * @retval LL_ERROR_RULESET_CREATE_INVALID Invalid flags/access/size passed to ruleset creation.
@@ -450,7 +448,7 @@ ll_error_t ll_ruleset_add_net_port(const ll_ruleset_t *const ruleset,
  * @retval LL_ERROR_INVALID_ARGUMENT Invalid argument (e.g., NULL ruleset).
  * @retval LL_ERROR_RESTRICT_BAD_FD Ruleset FD is invalid.
  * @retval LL_ERROR_RESTRICT_FLAGS_INVALID Unknown flags set.
- * @retval LL_ERROR_UNSUPPORTED_FEATURE Requested flags not supported in strict mode.
+ * @retval LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT Requested flags not supported in strict mode.
  * @retval LL_ERROR_RESTRICT_DISABLED Landlock is supported but disabled at boot time.
  * @retval LL_ERROR_RESTRICT_BAD_FD_TYPE Ruleset FD is not a ruleset FD.
  * @retval LL_ERROR_RESTRICT_NOT_PERMITTED Insufficient permissions or no_new_privs not set.

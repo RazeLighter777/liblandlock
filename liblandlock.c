@@ -160,8 +160,6 @@ const char *ll_error_string(const ll_error_t error)
         return "Invalid argument.";
     case LL_ERROR_OUT_OF_MEMORY:
         return "Out of memory.";
-    case LL_ERROR_UNSUPPORTED_FEATURE:
-        return "Requested feature is not supported by the running kernel.";
     case LL_ERROR_UNSUPPORTED_SYSCALL:
         return "Required syscall is not available.";
     case LL_ERROR_RULESET_INCOMPATIBLE:
@@ -373,7 +371,7 @@ ll_error_t ll_ruleset_attr_handle(ll_ruleset_attr_t *const ruleset_attr,
         masked = access_requested & supported;
         if (masked != access_requested && ruleset_attr->compat_mode == LL_ABI_COMPAT_STRICT)
         {
-            return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_UNSUPPORTED_FEATURE);
+            return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT);
         }
         ruleset_attr->attr.handled_access_fs |= masked;
         return LL_ERROR_OK;
@@ -382,7 +380,7 @@ ll_error_t ll_ruleset_attr_handle(ll_ruleset_attr_t *const ruleset_attr,
         masked = access_requested & supported;
         if (masked != access_requested && ruleset_attr->compat_mode == LL_ABI_COMPAT_STRICT)
         {
-            return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_UNSUPPORTED_FEATURE);
+            return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT);
         }
         ruleset_attr->attr.handled_access_net |= masked;
         return LL_ERROR_OK;
@@ -391,7 +389,7 @@ ll_error_t ll_ruleset_attr_handle(ll_ruleset_attr_t *const ruleset_attr,
         masked = access_requested & supported;
         if (masked != access_requested && ruleset_attr->compat_mode == LL_ABI_COMPAT_STRICT)
         {
-            return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_UNSUPPORTED_FEATURE);
+            return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT);
         }
         ruleset_attr->attr.scoped |= masked;
         return LL_ERROR_OK;
@@ -669,14 +667,14 @@ ll_error_t ll_ruleset_enforce(const ll_ruleset_t *const ruleset,
     __u32 masked_flags = flags & supported;
     if (ruleset->compat_mode == LL_ABI_COMPAT_STRICT && masked_flags != flags)
     {
-        return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_UNSUPPORTED_FEATURE);
+        return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT);
     }
 
     if (masked_flags != 0 && !ll_audit_supported())
     {
         if (ruleset->compat_mode == LL_ABI_COMPAT_STRICT)
         {
-            return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_UNSUPPORTED_FEATURE);
+            return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT);
         }
         masked_flags = 0;
     }
