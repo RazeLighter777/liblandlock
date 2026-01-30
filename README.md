@@ -12,37 +12,32 @@ Small C library providing a friendlier API around the Linux Landlock LSM.
 int main(void)
 {
   ll_ruleset_attr_t attr = ll_ruleset_attr_defaults();
-  ll_err_t err = ll_ruleset_attr_handle_fs(&attr, LL_ACCESS_GROUP_FS_READ);
-  if (LL_ERRORED(err))
+  attr = ll_ruleset_attr_fs(attr, LL_ACCESS_GROUP_FS_READ);
+
+  ll_ruleset_result_t res = ll_ruleset_create_result(attr);
+  if (LL_ERRORED(res.err))
   {
-    fprintf(stderr, "ll_ruleset_attr_handle_fs failed: %s (%d)\n", ll_error_string(err), err);
-    return 1;
-  }
-  ll_ruleset_t *ruleset = NULL;
-  err =  ll_ruleset_create(&attr, &ruleset);
-  if (LL_ERRORED(err))
-  {
-    fprintf(stderr, "ll_ruleset_create failed: %s (%d)\n", ll_error_string(err), err);
+    fprintf(stderr, "ll_ruleset_create failed: %s (%d)\n", ll_error_string(res.err), res.err);
     return 1;
   }
 
-  err = ll_ruleset_add_path(ruleset, "/usr", LL_ACCESS_GROUP_FS_READ, 0);
+  ll_error_t err = ll_ruleset_add_path_ro(res.ruleset, "/usr");
   if (LL_ERRORED(err))
   {
     fprintf(stderr, "ll_ruleset_add_path failed: %s (%d)\n", ll_error_string(err), err);
-    ll_ruleset_close(ruleset);
+    ll_ruleset_close(res.ruleset);
     return 1;
   }
 
-  err = ll_ruleset_enforce(ruleset, 0);
+  err = ll_ruleset_enforce(res.ruleset, 0);
   if (LL_ERRORED(err))
   {
     fprintf(stderr, "ll_ruleset_enforce failed: %s (%d)\n", ll_error_string(err), err);
-    ll_ruleset_close(ruleset);
+    ll_ruleset_close(res.ruleset);
     return 1;
   }
 
-  ll_ruleset_close(ruleset);
+  ll_ruleset_close(res.ruleset);
   return 0;
 }
 ```
@@ -94,7 +89,6 @@ Include liblandlock.h in your project.
 
 The header-only build output contains:
 
-- `#pragma once` at the top
 - The vendored Landlock UAPI header inlined (so consumers don’t need to install Landlock headers)
 - The public API from `liblandlock.h`
 - The implementation from `liblandlock.c` behind `#ifdef LIBLANDLOCK_IMPLEMENTATION`
@@ -107,6 +101,7 @@ This builds and runs two test binaries:
 
 - A regular build using `liblandlock.c` + `liblandlock.h`
 - A header-only build using `dist/liblandlock.h`
+- `#pragma once` at the top
 
 ### Header-only style
 

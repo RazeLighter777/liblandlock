@@ -53,33 +53,31 @@ int main(void)
     {
         ll_ruleset_attr_t attr = ll_ruleset_attr_defaults();
         /* Handle both read and write rights, but only allow read on our directory. */
-        (void)ll_ruleset_attr_handle_fs(&attr,
-                                        LL_ACCESS_GROUP_FS_READ | LL_ACCESS_GROUP_FS_WRITE);
+        attr = ll_ruleset_attr_fs(attr, LL_ACCESS_GROUP_FS_READ | LL_ACCESS_GROUP_FS_WRITE);
 
-        ll_ruleset_t *ruleset = NULL;
-        ll_error_t err = ll_ruleset_create(&attr, &ruleset);
-        if (LL_ERRORED(err))
+        ll_ruleset_result_t res = ll_ruleset_create_result(attr);
+        if (LL_ERRORED(res.err))
         {
-            if (err == LL_ERROR_UNSUPPORTED_SYSCALL ||
-                err == LL_ERROR_RULESET_CREATE_DISABLED ||
-                err == LL_ERROR_SYSTEM)
+            if (res.err == LL_ERROR_UNSUPPORTED_SYSCALL ||
+                res.err == LL_ERROR_RULESET_CREATE_DISABLED ||
+                res.err == LL_ERROR_SYSTEM)
             {
                 printf("SKIP: Landlock not supported/enabled on this system\n");
                 _exit(0);
             }
-            fprintf(stderr, "ll_ruleset_create failed: %s (%d)\n", ll_error_string(err), err);
+            fprintf(stderr, "ll_ruleset_create failed: %s (%d)\n", ll_error_string(res.err), res.err);
             _exit(1);
         }
 
-        err = ll_ruleset_add_path(ruleset, dir, LL_ACCESS_GROUP_FS_READ, 0);
+        ll_error_t err = ll_ruleset_add_path_ro(res.ruleset, dir);
         if (LL_ERRORED(err))
         {
             fprintf(stderr, "ll_ruleset_add_path failed: %s (%d)\n", ll_error_string(err), err);
-            ll_ruleset_close(ruleset);
+            ll_ruleset_close(res.ruleset);
             _exit(1);
         }
 
-        err = ll_ruleset_enforce(ruleset, 0);
+        err = ll_ruleset_enforce(res.ruleset, 0);
         if (LL_ERRORED(err))
         {
             if (err == LL_ERROR_UNSUPPORTED_SYSCALL ||
@@ -87,15 +85,15 @@ int main(void)
                 err == LL_ERROR_RESTRICT_NOT_PERMITTED)
             {
                 printf("SKIP: Landlock not supported/enabled on this system\n");
-                ll_ruleset_close(ruleset);
+                ll_ruleset_close(res.ruleset);
                 _exit(0);
             }
             fprintf(stderr, "ll_ruleset_enforce failed: %s (%d)\n", ll_error_string(err), err);
-            ll_ruleset_close(ruleset);
+            ll_ruleset_close(res.ruleset);
             _exit(1);
         }
 
-        ll_ruleset_close(ruleset);
+        ll_ruleset_close(res.ruleset);
 
         /* Read should work */
         const int rd = open(file_path, O_RDONLY);

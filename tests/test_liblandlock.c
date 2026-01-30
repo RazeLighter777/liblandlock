@@ -29,16 +29,16 @@ static void fail(const char *message)
 
 static void test_create_attr_defaults(void)
 {
-    ll_ruleset_attr_t attr = ll_ruleset_attr_make(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
-    if (attr.attr.handled_access_fs != 0)
+    ll_ruleset_attr_t attr = ll_ruleset_attr_create(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
+    if (attr.access.handled_access_fs != 0)
     {
         fail("handled_access_fs should default to 0");
     }
-    if (attr.attr.handled_access_net != 0)
+    if (attr.access.handled_access_net != 0)
     {
         fail("handled_access_net should default to 0");
     }
-    if (attr.attr.scoped != 0)
+    if (attr.access.scoped != 0)
     {
         fail("scoped should default to 0");
     }
@@ -50,57 +50,92 @@ static void test_create_attr_defaults(void)
 
 static void test_handle_access_fs_strict(void)
 {
-    ll_ruleset_attr_t attr = ll_ruleset_attr_make(1, LL_ABI_COMPAT_STRICT);
-    ll_error_t ret = ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_FS, LANDLOCK_ACCESS_FS_REFER);
+    ll_ruleset_attr_t attr = ll_ruleset_attr_create(1, LL_ABI_COMPAT_STRICT);
+    attr = ll_ruleset_attr_fs(attr, LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_REFER);
+    ll_ruleset_t *ruleset = NULL;
+    ll_error_t ret = ll_ruleset_create(attr, &ruleset);
+    if (ret == LL_ERROR_UNSUPPORTED_SYSCALL ||
+        ret == LL_ERROR_RULESET_CREATE_DISABLED ||
+        ret == LL_ERROR_SYSTEM)
+    {
+        printf("SKIP: kernel does not support Landlock\n");
+        return;
+    }
     if (ret != LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT)
     {
         fail("strict mode should reject unsupported FS access");
     }
+    ll_ruleset_close(ruleset);
 }
 
 static void test_handle_access_fs_best_effort(void)
 {
-    ll_ruleset_attr_t attr = ll_ruleset_attr_make(1, LL_ABI_COMPAT_BEST_EFFORT);
-    ll_error_t ret = ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_FS, LANDLOCK_ACCESS_FS_REFER);
-    if (ret != 0)
+    ll_ruleset_attr_t attr = ll_ruleset_attr_create(1, LL_ABI_COMPAT_BEST_EFFORT);
+    attr = ll_ruleset_attr_fs(attr, LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_REFER);
+    ll_ruleset_t *ruleset = NULL;
+    ll_error_t ret = ll_ruleset_create(attr, &ruleset);
+    if (ret == LL_ERROR_UNSUPPORTED_SYSCALL ||
+        ret == LL_ERROR_RULESET_CREATE_DISABLED ||
+        ret == LL_ERROR_SYSTEM)
+    {
+        printf("SKIP: kernel does not support Landlock\n");
+        return;
+    }
+    if (ret != LL_ERROR_OK_PARTIAL_SANDBOX)
     {
         fail("best-effort should allow unsupported FS access request");
     }
-    if ((attr.attr.handled_access_fs & LANDLOCK_ACCESS_FS_REFER) != 0)
-    {
-        fail("best-effort should mask unsupported FS access");
-    }
+    ll_ruleset_close(ruleset);
 }
 
 static void test_handle_access_net_strict(void)
 {
-    ll_ruleset_attr_t attr = ll_ruleset_attr_make(3, LL_ABI_COMPAT_STRICT);
-    ll_error_t ret = ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_NET, LANDLOCK_ACCESS_NET_BIND_TCP);
+    ll_ruleset_attr_t attr = ll_ruleset_attr_create(3, LL_ABI_COMPAT_STRICT);
+    attr = ll_ruleset_attr_fs(attr, LANDLOCK_ACCESS_FS_READ_FILE);
+    attr = ll_ruleset_attr_net(attr, LANDLOCK_ACCESS_NET_BIND_TCP);
+    ll_ruleset_t *ruleset = NULL;
+    ll_error_t ret = ll_ruleset_create(attr, &ruleset);
+    if (ret == LL_ERROR_UNSUPPORTED_SYSCALL ||
+        ret == LL_ERROR_RULESET_CREATE_DISABLED ||
+        ret == LL_ERROR_SYSTEM)
+    {
+        printf("SKIP: kernel does not support Landlock\n");
+        return;
+    }
     if (ret != LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT)
     {
         fail("strict mode should reject unsupported NET access");
     }
+    ll_ruleset_close(ruleset);
 }
 
 static void test_scope_strict(void)
 {
-    ll_ruleset_attr_t attr = ll_ruleset_attr_make(5, LL_ABI_COMPAT_STRICT);
-    ll_error_t ret = ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_SCOPE,
-                                            LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET);
+    ll_ruleset_attr_t attr = ll_ruleset_attr_create(5, LL_ABI_COMPAT_STRICT);
+    attr = ll_ruleset_attr_fs(attr, LANDLOCK_ACCESS_FS_READ_FILE);
+    attr = ll_ruleset_attr_scope(attr, LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET);
+    ll_ruleset_t *ruleset = NULL;
+    ll_error_t ret = ll_ruleset_create(attr, &ruleset);
+    if (ret == LL_ERROR_UNSUPPORTED_SYSCALL ||
+        ret == LL_ERROR_RULESET_CREATE_DISABLED ||
+        ret == LL_ERROR_SYSTEM)
+    {
+        printf("SKIP: kernel does not support Landlock\n");
+        return;
+    }
     if (ret != LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT)
     {
         fail("strict mode should reject unsupported scope");
     }
+    ll_ruleset_close(ruleset);
 }
 
 static void test_restrict_self_flags(void)
 {
-    ll_ruleset_attr_t attr = ll_ruleset_attr_make(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
-    ll_error_t ret = ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_FS,
-                                            LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR);
-
+    ll_ruleset_attr_t attr = ll_ruleset_attr_create(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
+    attr = ll_ruleset_attr_fs(attr, LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR);
     ll_ruleset_t *ruleset = NULL;
-    ret = ll_ruleset_create(&attr, &ruleset);
+    ll_error_t ret = ll_ruleset_create(attr, &ruleset);
     if (LL_ERRORED(ret))
     {
         if (ret == LL_ERROR_UNSUPPORTED_SYSCALL ||
@@ -125,17 +160,11 @@ static void test_restrict_self_flags(void)
 
 static void test_create_ruleset_best_effort(void)
 {
-    ll_ruleset_attr_t attr = ll_ruleset_attr_make(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
+    ll_ruleset_attr_t attr = ll_ruleset_attr_create(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
     // we must request at least one access right to create a ruleset
-    ll_error_t ret = ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_FS,
-                                            LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_REFER);
-    if (LL_ERRORED(ret))
-    {
-        fail("failed to handle FS access in create ruleset test");
-        return;
-    }
+    attr = ll_ruleset_attr_fs(attr, LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR);
     ll_ruleset_t *ruleset = NULL;
-    ret = ll_ruleset_create(&attr, &ruleset);
+    ll_error_t ret = ll_ruleset_create(attr, &ruleset);
     if (LL_ERRORED(ret))
     {
         if (ret == LL_ERROR_UNSUPPORTED_SYSCALL ||
@@ -196,15 +225,11 @@ static void test_ruleset_enforcement(void)
 
     if (pid == 0)
     {
-        ll_ruleset_attr_t attr = ll_ruleset_attr_make(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
-        ll_error_t ret = ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_FS,
-                                                LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR);
-        if (LL_ERRORED(ret))
-        {
-            _exit(1);
-        }
+        ll_ruleset_attr_t attr = ll_ruleset_attr_create(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
+        attr = ll_ruleset_attr_fs(attr, LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR);
+
         ll_ruleset_t *ruleset = NULL;
-        ret = ll_ruleset_create(&attr, &ruleset);
+        ll_error_t ret = ll_ruleset_create(attr, &ruleset);
         if (LL_ERRORED(ret))
         {
             if (ret == LL_ERROR_UNSUPPORTED_SYSCALL ||

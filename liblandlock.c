@@ -343,59 +343,14 @@ ll_error_t ll_get_errata(int *const out_errata)
     return LL_ERROR_OK;
 }
 
-ll_ruleset_attr_t ll_ruleset_attr_make(const ll_abi_t abi,
-                                       const ll_abi_compat_mode_t compat_mode)
+ll_ruleset_attr_t ll_ruleset_attr_create(const ll_abi_t abi,
+                                         const ll_abi_compat_mode_t compat_mode)
 {
     ll_ruleset_attr_t ruleset_attr;
     memset(&ruleset_attr, 0, sizeof(ruleset_attr));
     ruleset_attr.abi = ll_resolve_abi(abi);
     ruleset_attr.compat_mode = compat_mode;
     return ruleset_attr;
-}
-
-ll_error_t ll_ruleset_attr_handle(ll_ruleset_attr_t *const ruleset_attr,
-                                  const ll_ruleset_access_class_t access_class,
-                                  const __u64 access_requested)
-{
-    if (!ruleset_attr)
-    {
-        return ll_error_with_errno(EINVAL, LL_ERROR_INVALID_ARGUMENT);
-    }
-
-    __u64 supported = 0;
-    __u64 masked = 0;
-    switch (access_class)
-    {
-    case LL_RULESET_ACCESS_CLASS_FS:
-        supported = ll_supported_access_fs(ruleset_attr->abi);
-        masked = access_requested & supported;
-        if (masked != access_requested && ruleset_attr->compat_mode == LL_ABI_COMPAT_STRICT)
-        {
-            return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT);
-        }
-        ruleset_attr->attr.handled_access_fs |= masked;
-        return LL_ERROR_OK;
-    case LL_RULESET_ACCESS_CLASS_NET:
-        supported = ll_supported_access_net(ruleset_attr->abi);
-        masked = access_requested & supported;
-        if (masked != access_requested && ruleset_attr->compat_mode == LL_ABI_COMPAT_STRICT)
-        {
-            return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT);
-        }
-        ruleset_attr->attr.handled_access_net |= masked;
-        return LL_ERROR_OK;
-    case LL_RULESET_ACCESS_CLASS_SCOPE:
-        supported = ll_supported_scopes(ruleset_attr->abi);
-        masked = access_requested & supported;
-        if (masked != access_requested && ruleset_attr->compat_mode == LL_ABI_COMPAT_STRICT)
-        {
-            return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT);
-        }
-        ruleset_attr->attr.scoped |= masked;
-        return LL_ERROR_OK;
-    default:
-        return ll_error_with_errno(EINVAL, LL_ERROR_INVALID_ARGUMENT);
-    }
 }
 
 ll_error_t ll_ruleset_attr_add_flags(ll_ruleset_attr_t *const ruleset_attr,
@@ -410,7 +365,7 @@ ll_error_t ll_ruleset_attr_add_flags(ll_ruleset_attr_t *const ruleset_attr,
     return LL_ERROR_OK;
 }
 
-ll_error_t ll_ruleset_create(const ll_ruleset_attr_t *const ruleset_attr,
+ll_error_t ll_ruleset_create(const ll_ruleset_attr_t ruleset_attr,
                              ll_ruleset_t **const out_ruleset)
 {
     if (out_ruleset)
@@ -418,30 +373,30 @@ ll_error_t ll_ruleset_create(const ll_ruleset_attr_t *const ruleset_attr,
         *out_ruleset = NULL;
     }
 
-    if (!ruleset_attr || !out_ruleset)
+    if (!out_ruleset)
     {
         return ll_error_with_errno(EINVAL, LL_ERROR_INVALID_ARGUMENT);
     }
 
-    const ll_abi_t policy_abi = ll_resolve_abi(ruleset_attr->abi);
+    const ll_abi_t policy_abi = ll_resolve_abi(ruleset_attr.abi);
     int kernel_abi = landlock_create_ruleset(NULL, 0, LANDLOCK_CREATE_RULESET_VERSION);
     if (kernel_abi < 0)
     {
         return ll_error_from_create_ruleset_errno(errno);
     }
 
-    if (ruleset_attr->compat_mode == LL_ABI_COMPAT_STRICT && kernel_abi < policy_abi)
+    if (ruleset_attr.compat_mode == LL_ABI_COMPAT_STRICT && kernel_abi < policy_abi)
     {
         return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RULESET_INCOMPATIBLE);
     }
 
     ll_abi_t effective_abi = policy_abi;
-    if (ruleset_attr->compat_mode == LL_ABI_COMPAT_BEST_EFFORT && kernel_abi < policy_abi)
+    if (ruleset_attr.compat_mode == LL_ABI_COMPAT_BEST_EFFORT && kernel_abi < policy_abi)
     {
         effective_abi = kernel_abi;
     }
 
-    struct landlock_ruleset_attr attr = ruleset_attr->attr;
+    struct landlock_ruleset_attr attr = ruleset_attr.access;
     const __u64 fs_mask = ll_supported_access_fs(effective_abi);
     const __u64 net_mask = ll_supported_access_net(effective_abi);
     const __u64 scope_mask = ll_supported_scopes(effective_abi);
@@ -459,7 +414,7 @@ ll_error_t ll_ruleset_create(const ll_ruleset_attr_t *const ruleset_attr,
         return ll_error_with_errno(ENOMSG, LL_ERROR_RULESET_CREATE_EMPTY_ACCESS);
     }
 
-    const int create_flags = (int)(ruleset_attr->flags);
+    const int create_flags = (int)(ruleset_attr.flags);
     const int ruleset_fd = landlock_create_ruleset(&attr, sizeof(attr), create_flags);
     if (ruleset_fd < 0)
     {
@@ -474,13 +429,13 @@ ll_error_t ll_ruleset_create(const ll_ruleset_attr_t *const ruleset_attr,
     }
     ruleset->ruleset_fd = ruleset_fd;
     ruleset->abi = effective_abi;
-    ruleset->compat_mode = ruleset_attr->compat_mode;
+    ruleset->compat_mode = ruleset_attr.compat_mode;
     ruleset->handled_access_fs = attr.handled_access_fs;
     ruleset->handled_access_net = attr.handled_access_net;
     ruleset->handled_access_scope = attr.scoped;
 
     // Check for partial sandboxing in strict mode.
-    if (ruleset_attr->compat_mode == LL_ABI_COMPAT_STRICT)
+    if (ruleset_attr.compat_mode == LL_ABI_COMPAT_STRICT)
     {
         if (fs_before != ruleset->handled_access_fs ||
             net_before != ruleset->handled_access_net ||

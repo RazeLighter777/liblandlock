@@ -237,7 +237,7 @@ typedef struct
 {
     ll_abi_t abi;
     ll_abi_compat_mode_t compat_mode;
-    struct landlock_ruleset_attr attr;
+    struct landlock_ruleset_attr access;
     __u32 flags;
 } ll_ruleset_attr_t;
 
@@ -284,58 +284,46 @@ ll_error_t ll_get_errata(int *const out_errata);
  * @param compat_mode Compatibility policy when the kernel ABI is lower than requested.
  * @return Initialized attribute container with zeroed access masks.
  */
-__attribute__((warn_unused_result)) ll_ruleset_attr_t ll_ruleset_attr_make(ll_abi_t abi,
-                                                                           ll_abi_compat_mode_t compat_mode);
+__attribute__((warn_unused_result)) ll_ruleset_attr_t ll_ruleset_attr_create(ll_abi_t abi,
+                                                                             ll_abi_compat_mode_t compat_mode);
 
 static inline ll_ruleset_attr_t ll_ruleset_attr_defaults(void)
 {
-    return ll_ruleset_attr_make(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
-}
-/**
- * @brief Allow access in a given domain for a ruleset attribute container.
- *
- * @param ruleset_attr Attribute container to modify.
- * @param access_class Access class of the mask.
- * @param access_requested Access mask to allow.
- * @return LL_ERROR_OK on success, negative error code on failure.
- *
- * @retval LL_ERROR_OK Success.
- * @retval LL_ERROR_INVALID_ARGUMENT Invalid argument (e.g., NULL container or unknown access class).
- * @retval LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT Requested access not supported in strict mode.
- */
-__attribute__((warn_unused_result)) ll_error_t ll_ruleset_attr_handle(ll_ruleset_attr_t *const ruleset_attr,
-                                                                      ll_ruleset_access_class_t access_class,
-                                                                      const __u64 access_requested);
-
-static inline ll_error_t ll_ruleset_attr_handle_fs(ll_ruleset_attr_t *const ruleset_attr,
-                                                   const __u64 access_requested)
-{
-    return ll_ruleset_attr_handle(ruleset_attr, LL_RULESET_ACCESS_CLASS_FS, access_requested);
-}
-
-static inline ll_error_t ll_ruleset_attr_handle_net(ll_ruleset_attr_t *const ruleset_attr,
-                                                    const __u64 access_requested)
-{
-    return ll_ruleset_attr_handle(ruleset_attr, LL_RULESET_ACCESS_CLASS_NET, access_requested);
-}
-
-static inline ll_error_t ll_ruleset_attr_handle_scope(ll_ruleset_attr_t *const ruleset_attr,
-                                                      const __u64 access_requested)
-{
-    return ll_ruleset_attr_handle(ruleset_attr, LL_RULESET_ACCESS_CLASS_SCOPE, access_requested);
+    return ll_ruleset_attr_create(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
 }
 
 /**
- * @brief Add flags to ruleset attributes.
- * @param ruleset_attr Attribute container to modify.
- * @param flags Flags to add.
- * @return LL_ERROR_OK on success, negative error code on failure.
- *
- * @retval LL_ERROR_OK Success.
- * @retval LL_ERROR_INVALID_ARGUMENT Invalid argument (e.g., NULL container).
+ * @brief Literal initializer for ruleset attributes.
  */
-__attribute__((warn_unused_result)) ll_error_t ll_ruleset_attr_add_flags(ll_ruleset_attr_t *const ruleset_attr,
-                                                                         const __u32 flags);
+#define LL_RULESET_ATTR_INIT \
+    (ll_ruleset_attr_t){.abi = LL_ABI_LATEST, .compat_mode = LL_ABI_COMPAT_BEST_EFFORT, .access = {0}, .flags = 0}
+
+/**
+ * @brief Set filesystem handled access mask.
+ */
+static inline ll_ruleset_attr_t ll_ruleset_attr_fs(ll_ruleset_attr_t attr, const __u64 fs_mask)
+{
+    attr.access.handled_access_fs = fs_mask;
+    return attr;
+}
+
+/**
+ * @brief Set network handled access mask.
+ */
+static inline ll_ruleset_attr_t ll_ruleset_attr_net(ll_ruleset_attr_t attr, const __u64 net_mask)
+{
+    attr.access.handled_access_net = net_mask;
+    return attr;
+}
+
+/**
+ * @brief Set scope handled access mask.
+ */
+static inline ll_ruleset_attr_t ll_ruleset_attr_scope(ll_ruleset_attr_t attr, const __u64 scope_mask)
+{
+    attr.access.scoped = scope_mask;
+    return attr;
+}
 
 /**
  * @brief Create a ruleset from prepared attributes.
@@ -358,8 +346,27 @@ __attribute__((warn_unused_result)) ll_error_t ll_ruleset_attr_add_flags(ll_rule
  * @retval LL_ERROR_UNSUPPORTED_SYSCALL Required syscall not available.
  * @retval LL_ERROR_SYSTEM Other system error.
  */
-__attribute__((warn_unused_result)) ll_error_t ll_ruleset_create(const ll_ruleset_attr_t *const ruleset_attr,
+__attribute__((warn_unused_result)) ll_error_t ll_ruleset_create(const ll_ruleset_attr_t ruleset_attr,
                                                                  ll_ruleset_t **const out_ruleset);
+
+/**
+ * @brief Result container for ruleset creation.
+ */
+typedef struct
+{
+    ll_error_t err;
+    ll_ruleset_t *ruleset;
+} ll_ruleset_result_t;
+
+/**
+ * @brief Create a ruleset and return an error/result pair.
+ */
+static inline ll_ruleset_result_t ll_ruleset_create_result(const ll_ruleset_attr_t attr)
+{
+    ll_ruleset_result_t out = {.err = LL_ERROR_OK, .ruleset = NULL};
+    out.err = ll_ruleset_create(attr, &out.ruleset);
+    return out;
+}
 
 /**
  * @brief Close and free a ruleset handle.
@@ -395,6 +402,36 @@ __attribute__((warn_unused_result)) ll_error_t ll_ruleset_add_path(const ll_rule
                                                                    const char *const path,
                                                                    const __u64 access_masks,
                                                                    const __u32 flags);
+
+/**
+ * @brief Add a read-only path-beneath rule to a ruleset.
+ */
+static inline ll_error_t ll_ruleset_add_path_ro(const ll_ruleset_t *const ruleset, const char *const path)
+{
+    return ll_ruleset_add_path(ruleset, path, LL_ACCESS_GROUP_FS_READ, 0);
+}
+
+/**
+ * @brief Add a read-write path-beneath rule to a ruleset.
+ */
+static inline ll_error_t ll_ruleset_add_path_rw(const ll_ruleset_t *const ruleset, const char *const path)
+{
+    return ll_ruleset_add_path(ruleset, path, LL_ACCESS_GROUP_FS_READ | LL_ACCESS_GROUP_FS_WRITE, 0);
+}
+
+/**
+ * @brief Defer-style cleanup helpers.
+ */
+#define LL_DEFER_START       \
+    int _ll_defer_guard = 0; \
+    for (; !_ll_defer_guard; _ll_defer_guard = 1)
+#define LL_DEFER_END
+
+/**
+ * @brief Defer-style cleanup macro for rulesets.
+ */
+#define LL_DEFER_RULESET(ruleset_ptr) \
+    LL_DEFER_START for (; (ruleset_ptr) != NULL; ll_ruleset_close(ruleset_ptr), (ruleset_ptr) = NULL) LL_DEFER_END
 
 /**
  * @brief Add a path-beneath rule to a ruleset using an existing FD.
