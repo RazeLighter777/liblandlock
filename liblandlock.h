@@ -27,25 +27,6 @@ typedef enum
 } ll_abi_compat_mode_t;
 
 /**
- * @brief Result describing how completely a sandbox was created.
- */
-typedef enum
-{
-    /**
-     * @brief All requested access and scope bits were applied.
-     */
-    LL_SANDBOX_RESULT_FULLY_SANDBOXED = 0,
-    /**
-     * @brief Some requested access or scope bits were masked.
-     */
-    LL_SANDBOX_RESULT_PARTIALLY_SANDBOXED = 1,
-    /**
-     * @brief Sandbox could not be applied.
-     */
-    LL_SANDBOX_RESULT_NOT_SANDBOXED = 2,
-} ll_sandbox_result_t;
-
-/**
  * @brief Landlock error codes (negative errno values).
  */
 typedef enum
@@ -54,6 +35,10 @@ typedef enum
      * @brief Operation completed successfully.
      */
     LL_ERROR_OK = 0,
+    /**
+     * @brief Operation completed, but only partial sandboxing was applied.
+     */
+    LL_ERROR_OK_PARTIAL_SANDBOX = 1,
     /**
      * @brief System error not covered by Landlock semantics.
      */
@@ -169,6 +154,10 @@ typedef enum
      * @brief The maximum number of composed rulesets is reached for the calling thread.  This limit is currently 64.
      */
     LL_ERROR_RESTRICT_LIMIT_REACHED = -145,
+    /**
+     * @brief Sandbox partially applied, but was disallowed due to strict mode
+     */
+    LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT = -146,
 } ll_error_t;
 
 /**
@@ -300,6 +289,10 @@ ll_error_t ll_get_errata(int *const out_errata);
 ll_ruleset_attr_t ll_ruleset_attr_make(ll_abi_t abi,
                                        ll_abi_compat_mode_t compat_mode);
 
+static inline ll_ruleset_attr_t ll_ruleset_attr_defaults(void)
+{
+    return ll_ruleset_attr_make(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
+}
 /**
  * @brief Allow access in a given domain for a ruleset attribute container.
  *
@@ -315,6 +308,18 @@ ll_ruleset_attr_t ll_ruleset_attr_make(ll_abi_t abi,
 ll_error_t ll_ruleset_attr_handle(ll_ruleset_attr_t *const ruleset_attr,
                                   ll_ruleset_access_class_t access_class,
                                   const __u64 access_requested);
+
+static inline ll_error_t ll_ruleset_attr_handle_fs(ll_ruleset_attr_t *const ruleset_attr,
+                                                   const __u64 access_requested)
+{
+    return ll_ruleset_attr_handle(ruleset_attr, LL_RULESET_ACCESS_CLASS_FS, access_requested);
+}
+
+static inline ll_error_t ll_ruleset_attr_handle_net(ll_ruleset_attr_t *const ruleset_attr,
+                                                    const __u64 access_requested)
+{
+    return ll_ruleset_attr_handle(ruleset_attr, LL_RULESET_ACCESS_CLASS_NET, access_requested);
+}
 
 /**
  * @brief Create a ruleset from prepared attributes.
@@ -340,7 +345,6 @@ ll_error_t ll_ruleset_attr_handle(ll_ruleset_attr_t *const ruleset_attr,
  */
 ll_error_t ll_ruleset_create(const ll_ruleset_attr_t *const ruleset_attr,
                              const __u32 flags,
-                             ll_sandbox_result_t *const result,
                              ll_ruleset_t **const out_ruleset);
 
 /**

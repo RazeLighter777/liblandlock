@@ -51,15 +51,13 @@ int main(void)
 
     if (pid == 0)
     {
-        ll_ruleset_attr_t attr = ll_ruleset_attr_make(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
-
+        ll_ruleset_attr_t attr = ll_ruleset_attr_defaults();
         /* Handle both read and write rights, but only allow read on our directory. */
-        (void)ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_FS,
-                                     LL_ACCESS_GROUP_FS_READ | LL_ACCESS_GROUP_FS_WRITE);
+        (void)ll_ruleset_attr_handle_fs(&attr,
+                                        LL_ACCESS_GROUP_FS_READ | LL_ACCESS_GROUP_FS_WRITE);
 
         ll_ruleset_t *ruleset = NULL;
-        ll_sandbox_result_t result = LL_SANDBOX_RESULT_NOT_SANDBOXED;
-        ll_error_t err = ll_ruleset_create(&attr, 0, &result, &ruleset);
+        ll_error_t err = ll_ruleset_create(&attr, 0, &ruleset);
         if (err != LL_ERROR_OK)
         {
             if (err == LL_ERROR_UNSUPPORTED_SYSCALL ||

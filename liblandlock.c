@@ -152,6 +152,8 @@ const char *ll_error_string(const ll_error_t error)
     {
     case LL_ERROR_OK:
         return "Success.";
+    case LL_ERROR_OK_PARTIAL_SANDBOX:
+        return "Operation completed, but only partial sandboxing was applied.";
     case LL_ERROR_SYSTEM:
         return "System error.";
     case LL_ERROR_INVALID_ARGUMENT:
@@ -208,6 +210,8 @@ const char *ll_error_string(const ll_error_t error)
         return "ruleset_fd has no read access to the underlying ruleset, or the calling thread is not running with no_new_privs, or it doesn't have the CAP_SYS_ADMIN in its user namespace.";
     case LL_ERROR_RESTRICT_LIMIT_REACHED:
         return "The maximum number of composed rulesets is reached for the calling thread.  This limit is currently 64.";
+    case LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT:
+        return "Sandbox partially applied, but was disallowed due to strict mode";
     default:
         return "Unknown error.";
     }
@@ -398,14 +402,8 @@ ll_error_t ll_ruleset_attr_handle(ll_ruleset_attr_t *const ruleset_attr,
 
 ll_error_t ll_ruleset_create(const ll_ruleset_attr_t *const ruleset_attr,
                              const __u32 flags,
-                             ll_sandbox_result_t *const result,
                              ll_ruleset_t **const out_ruleset)
 {
-    if (result)
-    {
-        *result = LL_SANDBOX_RESULT_NOT_SANDBOXED;
-    }
-
     if (out_ruleset)
     {
         *out_ruleset = NULL;
@@ -472,21 +470,30 @@ ll_error_t ll_ruleset_create(const ll_ruleset_attr_t *const ruleset_attr,
     ruleset->handled_access_net = attr.handled_access_net;
     ruleset->handled_access_scope = attr.scoped;
 
-    if (result)
+    // Check for partial sandboxing in strict mode.
+    if (ruleset_attr->compat_mode == LL_ABI_COMPAT_STRICT)
     {
-        if (effective_abi < policy_abi || fs_before != attr.handled_access_fs ||
-            net_before != attr.handled_access_net || scope_before != attr.scoped)
+        if (fs_before != ruleset->handled_access_fs ||
+            net_before != ruleset->handled_access_net ||
+            scope_before != ruleset->handled_access_scope)
         {
-            *result = LL_SANDBOX_RESULT_PARTIALLY_SANDBOXED;
+            ll_ruleset_close(ruleset);
+            return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT);
         }
-        else
-        {
-            *result = LL_SANDBOX_RESULT_FULLY_SANDBOXED;
-        }
+        *out_ruleset = ruleset;
+        return LL_ERROR_OK;
     }
-
-    *out_ruleset = ruleset;
-    return LL_ERROR_OK;
+    else
+    {
+        *out_ruleset = ruleset;
+        if (fs_before != ruleset->handled_access_fs ||
+            net_before != ruleset->handled_access_net ||
+            scope_before != ruleset->handled_access_scope)
+        {
+            return LL_ERROR_OK_PARTIAL_SANDBOX;
+        }
+        return LL_ERROR_OK;
+    }
 }
 
 void ll_ruleset_close(ll_ruleset_t *const ruleset)
