@@ -12,10 +12,14 @@ Small C library providing a friendlier API around the Linux Landlock LSM.
 int main(void)
 {
   ll_ruleset_attr_t attr = ll_ruleset_attr_defaults();
-  (void)ll_ruleset_attr_handle_fs(&attr, LL_ACCESS_GROUP_FS_READ);
-
+  ll_err_t err = ll_ruleset_attr_handle_fs(&attr, LL_ACCESS_GROUP_FS_READ);
+  if (LL_ERRORED(err))
+  {
+    fprintf(stderr, "ll_ruleset_attr_handle_fs failed: %s (%d)\n", ll_error_string(err), err);
+    return 1;
+  }
   ll_ruleset_t *ruleset = NULL;
-  ll_error_t err = ll_ruleset_create(&attr, 0, &ruleset);
+  err =  ll_ruleset_create(&attr, &ruleset);
   if (LL_ERRORED(err))
   {
     fprintf(stderr, "ll_ruleset_create failed: %s (%d)\n", ll_error_string(err), err);

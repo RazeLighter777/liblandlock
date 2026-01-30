@@ -398,8 +398,19 @@ ll_error_t ll_ruleset_attr_handle(ll_ruleset_attr_t *const ruleset_attr,
     }
 }
 
+ll_error_t ll_ruleset_attr_add_flags(ll_ruleset_attr_t *const ruleset_attr,
+                                     const __u32 flags)
+{
+    if (!ruleset_attr)
+    {
+        return ll_error_with_errno(EINVAL, LL_ERROR_INVALID_ARGUMENT);
+    }
+
+    ruleset_attr->flags |= flags;
+    return LL_ERROR_OK;
+}
+
 ll_error_t ll_ruleset_create(const ll_ruleset_attr_t *const ruleset_attr,
-                             const __u32 flags,
                              ll_ruleset_t **const out_ruleset)
 {
     if (out_ruleset)
@@ -448,7 +459,7 @@ ll_error_t ll_ruleset_create(const ll_ruleset_attr_t *const ruleset_attr,
         return ll_error_with_errno(ENOMSG, LL_ERROR_RULESET_CREATE_EMPTY_ACCESS);
     }
 
-    const int create_flags = (int)(flags | ruleset_attr->flags);
+    const int create_flags = (int)(ruleset_attr->flags);
     const int ruleset_fd = landlock_create_ruleset(&attr, sizeof(attr), create_flags);
     if (ruleset_fd < 0)
     {
@@ -679,12 +690,10 @@ ll_error_t ll_ruleset_enforce(const ll_ruleset_t *const ruleset,
         masked_flags = 0;
     }
 
-#if defined(PR_SET_NO_NEW_PRIVS)
     if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0))
     {
         return ll_error_system(errno);
     }
-#endif
 
     const int ret = landlock_restrict_self(ruleset->ruleset_fd, masked_flags);
     if (ret < 0)

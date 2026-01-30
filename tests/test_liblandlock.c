@@ -96,12 +96,12 @@ static void test_scope_strict(void)
 static void test_restrict_self_flags(void)
 {
     ll_ruleset_attr_t attr = ll_ruleset_attr_make(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
-    ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_FS,
-                           LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR);
+    ll_error_t ret = ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_FS,
+                                            LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR);
 
     ll_ruleset_t *ruleset = NULL;
-    ll_error_t ret = ll_ruleset_create(&attr, 0, &ruleset);
-    if (ret != LL_ERROR_OK)
+    ret = ll_ruleset_create(&attr, &ruleset);
+    if (LL_ERRORED(ret))
     {
         if (ret == LL_ERROR_UNSUPPORTED_SYSCALL ||
             ret == LL_ERROR_RULESET_CREATE_DISABLED ||
@@ -127,11 +127,16 @@ static void test_create_ruleset_best_effort(void)
 {
     ll_ruleset_attr_t attr = ll_ruleset_attr_make(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
     // we must request at least one access right to create a ruleset
-    ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_FS,
-                           LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_REFER);
+    ll_error_t ret = ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_FS,
+                                            LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_REFER);
+    if (LL_ERRORED(ret))
+    {
+        fail("failed to handle FS access in create ruleset test");
+        return;
+    }
     ll_ruleset_t *ruleset = NULL;
-    ll_error_t ret = ll_ruleset_create(&attr, 0, &ruleset);
-    if (ret != LL_ERROR_OK)
+    ret = ll_ruleset_create(&attr, &ruleset);
+    if (LL_ERRORED(ret))
     {
         if (ret == LL_ERROR_UNSUPPORTED_SYSCALL ||
             ret == LL_ERROR_RULESET_CREATE_DISABLED ||
@@ -192,12 +197,15 @@ static void test_ruleset_enforcement(void)
     if (pid == 0)
     {
         ll_ruleset_attr_t attr = ll_ruleset_attr_make(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
-        ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_FS,
-                               LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR);
-
+        ll_error_t ret = ll_ruleset_attr_handle(&attr, LL_RULESET_ACCESS_CLASS_FS,
+                                                LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR);
+        if (LL_ERRORED(ret))
+        {
+            _exit(1);
+        }
         ll_ruleset_t *ruleset = NULL;
-        ll_error_t ret = ll_ruleset_create(&attr, 0, &ruleset);
-        if (ret != LL_ERROR_OK)
+        ret = ll_ruleset_create(&attr, &ruleset);
+        if (LL_ERRORED(ret))
         {
             if (ret == LL_ERROR_UNSUPPORTED_SYSCALL ||
                 ret == LL_ERROR_RULESET_CREATE_DISABLED ||

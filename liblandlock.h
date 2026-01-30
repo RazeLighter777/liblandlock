@@ -284,8 +284,8 @@ ll_error_t ll_get_errata(int *const out_errata);
  * @param compat_mode Compatibility policy when the kernel ABI is lower than requested.
  * @return Initialized attribute container with zeroed access masks.
  */
-ll_ruleset_attr_t ll_ruleset_attr_make(ll_abi_t abi,
-                                       ll_abi_compat_mode_t compat_mode);
+__attribute__((warn_unused_result)) ll_ruleset_attr_t ll_ruleset_attr_make(ll_abi_t abi,
+                                                                           ll_abi_compat_mode_t compat_mode);
 
 static inline ll_ruleset_attr_t ll_ruleset_attr_defaults(void)
 {
@@ -303,9 +303,9 @@ static inline ll_ruleset_attr_t ll_ruleset_attr_defaults(void)
  * @retval LL_ERROR_INVALID_ARGUMENT Invalid argument (e.g., NULL container or unknown access class).
  * @retval LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT Requested access not supported in strict mode.
  */
-ll_error_t ll_ruleset_attr_handle(ll_ruleset_attr_t *const ruleset_attr,
-                                  ll_ruleset_access_class_t access_class,
-                                  const __u64 access_requested);
+__attribute__((warn_unused_result)) ll_error_t ll_ruleset_attr_handle(ll_ruleset_attr_t *const ruleset_attr,
+                                                                      ll_ruleset_access_class_t access_class,
+                                                                      const __u64 access_requested);
 
 static inline ll_error_t ll_ruleset_attr_handle_fs(ll_ruleset_attr_t *const ruleset_attr,
                                                    const __u64 access_requested)
@@ -319,11 +319,28 @@ static inline ll_error_t ll_ruleset_attr_handle_net(ll_ruleset_attr_t *const rul
     return ll_ruleset_attr_handle(ruleset_attr, LL_RULESET_ACCESS_CLASS_NET, access_requested);
 }
 
+static inline ll_error_t ll_ruleset_attr_handle_scope(ll_ruleset_attr_t *const ruleset_attr,
+                                                      const __u64 access_requested)
+{
+    return ll_ruleset_attr_handle(ruleset_attr, LL_RULESET_ACCESS_CLASS_SCOPE, access_requested);
+}
+
+/**
+ * @brief Add flags to ruleset attributes.
+ * @param ruleset_attr Attribute container to modify.
+ * @param flags Flags to add.
+ * @return LL_ERROR_OK on success, negative error code on failure.
+ *
+ * @retval LL_ERROR_OK Success.
+ * @retval LL_ERROR_INVALID_ARGUMENT Invalid argument (e.g., NULL container).
+ */
+__attribute__((warn_unused_result)) ll_error_t ll_ruleset_attr_add_flags(ll_ruleset_attr_t *const ruleset_attr,
+                                                                         const __u32 flags);
+
 /**
  * @brief Create a ruleset from prepared attributes.
  *
  * @param ruleset_attr Initialized attributes.
- * @param flags Flags passed to landlock_create_ruleset().
  * @param result Optional sandboxing result summary.
  * @param out_ruleset Output handle on success.
  * @return LL_ERROR_OK on success, negative error code on failure.
@@ -341,9 +358,8 @@ static inline ll_error_t ll_ruleset_attr_handle_net(ll_ruleset_attr_t *const rul
  * @retval LL_ERROR_UNSUPPORTED_SYSCALL Required syscall not available.
  * @retval LL_ERROR_SYSTEM Other system error.
  */
-ll_error_t ll_ruleset_create(const ll_ruleset_attr_t *const ruleset_attr,
-                             const __u32 flags,
-                             ll_ruleset_t **const out_ruleset);
+__attribute__((warn_unused_result)) ll_error_t ll_ruleset_create(const ll_ruleset_attr_t *const ruleset_attr,
+                                                                 ll_ruleset_t **const out_ruleset);
 
 /**
  * @brief Close and free a ruleset handle.
@@ -375,10 +391,10 @@ void ll_ruleset_close(ll_ruleset_t *const ruleset);
  * @retval LL_ERROR_UNSUPPORTED_SYSCALL Required syscall not available.
  * @retval LL_ERROR_SYSTEM Other system error.
  */
-ll_error_t ll_ruleset_add_path(const ll_ruleset_t *const ruleset,
-                               const char *const path,
-                               const __u64 access_masks,
-                               const __u32 flags);
+__attribute__((warn_unused_result)) ll_error_t ll_ruleset_add_path(const ll_ruleset_t *const ruleset,
+                                                                   const char *const path,
+                                                                   const __u64 access_masks,
+                                                                   const __u32 flags);
 
 /**
  * @brief Add a path-beneath rule to a ruleset using an existing FD.
@@ -403,10 +419,10 @@ ll_error_t ll_ruleset_add_path(const ll_ruleset_t *const ruleset,
  * @retval LL_ERROR_UNSUPPORTED_SYSCALL Required syscall not available.
  * @retval LL_ERROR_SYSTEM Other system error.
  */
-ll_error_t ll_ruleset_add_path_fd(const ll_ruleset_t *const ruleset,
-                                  const int dir_fd,
-                                  const __u64 access_masks,
-                                  const __u32 flags);
+__attribute__((warn_unused_result)) ll_error_t ll_ruleset_add_path_fd(const ll_ruleset_t *const ruleset,
+                                                                      const int dir_fd,
+                                                                      const __u64 access_masks,
+                                                                      const __u32 flags);
 
 /**
  * @brief Add a network port rule to a ruleset.
@@ -432,10 +448,10 @@ ll_error_t ll_ruleset_add_path_fd(const ll_ruleset_t *const ruleset,
  * @retval LL_ERROR_UNSUPPORTED_SYSCALL Required syscall not available.
  * @retval LL_ERROR_SYSTEM Other system error.
  */
-ll_error_t ll_ruleset_add_net_port(const ll_ruleset_t *const ruleset,
-                                   const __u64 port,
-                                   const __u64 access_masks,
-                                   const __u32 flags);
+__attribute__((warn_unused_result)) ll_error_t ll_ruleset_add_net_port(const ll_ruleset_t *const ruleset,
+                                                                       const __u64 port,
+                                                                       const __u64 access_masks,
+                                                                       const __u32 flags);
 
 /**
  * @brief Enforce the ruleset on the current process.
@@ -456,5 +472,5 @@ ll_error_t ll_ruleset_add_net_port(const ll_ruleset_t *const ruleset,
  * @retval LL_ERROR_UNSUPPORTED_SYSCALL Required syscall not available.
  * @retval LL_ERROR_SYSTEM Other system error.
  */
-ll_error_t ll_ruleset_enforce(const ll_ruleset_t *const ruleset,
-                              const __u32 flags);
+__attribute__((warn_unused_result)) ll_error_t ll_ruleset_enforce(const ll_ruleset_t *const ruleset,
+                                                                  const __u32 flags);

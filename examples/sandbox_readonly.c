@@ -57,7 +57,7 @@ int main(void)
                                         LL_ACCESS_GROUP_FS_READ | LL_ACCESS_GROUP_FS_WRITE);
 
         ll_ruleset_t *ruleset = NULL;
-        ll_error_t err = ll_ruleset_create(&attr, 0, &ruleset);
+        ll_error_t err = ll_ruleset_create(&attr, &ruleset);
         if (LL_ERRORED(err))
         {
             if (err == LL_ERROR_UNSUPPORTED_SYSCALL ||
