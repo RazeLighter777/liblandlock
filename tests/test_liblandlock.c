@@ -52,8 +52,9 @@ static void test_handle_access_fs_strict(void)
 {
     ll_ruleset_attr_t attr = ll_ruleset_attr_create(1, LL_ABI_COMPAT_STRICT);
     attr = ll_ruleset_attr_fs(attr, LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_REFER);
-    ll_ruleset_t *ruleset = NULL;
-    ll_error_t ret = ll_ruleset_create(attr, &ruleset);
+    ll_ruleset_result_t res = ll_ruleset_create_result(attr);
+    ll_ruleset_t *ruleset = res.ruleset;
+    ll_error_t ret = res.err;
     if (ret == LL_ERROR_UNSUPPORTED_SYSCALL ||
         ret == LL_ERROR_RULESET_CREATE_DISABLED ||
         ret == LL_ERROR_SYSTEM)
@@ -72,8 +73,9 @@ static void test_handle_access_fs_best_effort(void)
 {
     ll_ruleset_attr_t attr = ll_ruleset_attr_create(1, LL_ABI_COMPAT_BEST_EFFORT);
     attr = ll_ruleset_attr_fs(attr, LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_REFER);
-    ll_ruleset_t *ruleset = NULL;
-    ll_error_t ret = ll_ruleset_create(attr, &ruleset);
+    ll_ruleset_result_t res = ll_ruleset_create_result(attr);
+    ll_ruleset_t *ruleset = res.ruleset;
+    ll_error_t ret = res.err;
     if (ret == LL_ERROR_UNSUPPORTED_SYSCALL ||
         ret == LL_ERROR_RULESET_CREATE_DISABLED ||
         ret == LL_ERROR_SYSTEM)
@@ -93,8 +95,9 @@ static void test_handle_access_net_strict(void)
     ll_ruleset_attr_t attr = ll_ruleset_attr_create(3, LL_ABI_COMPAT_STRICT);
     attr = ll_ruleset_attr_fs(attr, LANDLOCK_ACCESS_FS_READ_FILE);
     attr = ll_ruleset_attr_net(attr, LANDLOCK_ACCESS_NET_BIND_TCP);
-    ll_ruleset_t *ruleset = NULL;
-    ll_error_t ret = ll_ruleset_create(attr, &ruleset);
+    ll_ruleset_result_t res = ll_ruleset_create_result(attr);
+    ll_ruleset_t *ruleset = res.ruleset;
+    ll_error_t ret = res.err;
     if (ret == LL_ERROR_UNSUPPORTED_SYSCALL ||
         ret == LL_ERROR_RULESET_CREATE_DISABLED ||
         ret == LL_ERROR_SYSTEM)
@@ -114,8 +117,9 @@ static void test_scope_strict(void)
     ll_ruleset_attr_t attr = ll_ruleset_attr_create(5, LL_ABI_COMPAT_STRICT);
     attr = ll_ruleset_attr_fs(attr, LANDLOCK_ACCESS_FS_READ_FILE);
     attr = ll_ruleset_attr_scope(attr, LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET);
-    ll_ruleset_t *ruleset = NULL;
-    ll_error_t ret = ll_ruleset_create(attr, &ruleset);
+    ll_ruleset_result_t res = ll_ruleset_create_result(attr);
+    ll_ruleset_t *ruleset = res.ruleset;
+    ll_error_t ret = res.err;
     if (ret == LL_ERROR_UNSUPPORTED_SYSCALL ||
         ret == LL_ERROR_RULESET_CREATE_DISABLED ||
         ret == LL_ERROR_SYSTEM)
@@ -134,8 +138,9 @@ static void test_restrict_self_flags(void)
 {
     ll_ruleset_attr_t attr = ll_ruleset_attr_create(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
     attr = ll_ruleset_attr_fs(attr, LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR);
-    ll_ruleset_t *ruleset = NULL;
-    ll_error_t ret = ll_ruleset_create(attr, &ruleset);
+    ll_ruleset_result_t res = ll_ruleset_create_result(attr);
+    ll_ruleset_t *ruleset = res.ruleset;
+    ll_error_t ret = res.err;
     if (LL_ERRORED(ret))
     {
         if (ret == LL_ERROR_UNSUPPORTED_SYSCALL ||
@@ -163,8 +168,9 @@ static void test_create_ruleset_best_effort(void)
     ll_ruleset_attr_t attr = ll_ruleset_attr_create(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
     // we must request at least one access right to create a ruleset
     attr = ll_ruleset_attr_fs(attr, LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR);
-    ll_ruleset_t *ruleset = NULL;
-    ll_error_t ret = ll_ruleset_create(attr, &ruleset);
+    ll_ruleset_result_t res = ll_ruleset_create_result(attr);
+    ll_ruleset_t *ruleset = res.ruleset;
+    ll_error_t ret = res.err;
     if (LL_ERRORED(ret))
     {
         if (ret == LL_ERROR_UNSUPPORTED_SYSCALL ||
@@ -228,8 +234,9 @@ static void test_ruleset_enforcement(void)
         ll_ruleset_attr_t attr = ll_ruleset_attr_create(LL_ABI_LATEST, LL_ABI_COMPAT_BEST_EFFORT);
         attr = ll_ruleset_attr_fs(attr, LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR);
 
-        ll_ruleset_t *ruleset = NULL;
-        ll_error_t ret = ll_ruleset_create(attr, &ruleset);
+        ll_ruleset_result_t res = ll_ruleset_create_result(attr);
+        ll_ruleset_t *ruleset = res.ruleset;
+        ll_error_t ret = res.err;
         if (LL_ERRORED(ret))
         {
             if (ret == LL_ERROR_UNSUPPORTED_SYSCALL ||

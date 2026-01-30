@@ -365,29 +365,22 @@ ll_error_t ll_ruleset_attr_add_flags(ll_ruleset_attr_t *const ruleset_attr,
     return LL_ERROR_OK;
 }
 
-ll_error_t ll_ruleset_create(const ll_ruleset_attr_t ruleset_attr,
-                             ll_ruleset_t **const out_ruleset)
+ll_ruleset_result_t ll_ruleset_create_result(const ll_ruleset_attr_t ruleset_attr)
 {
-    if (out_ruleset)
-    {
-        *out_ruleset = NULL;
-    }
-
-    if (!out_ruleset)
-    {
-        return ll_error_with_errno(EINVAL, LL_ERROR_INVALID_ARGUMENT);
-    }
+    ll_ruleset_result_t out = {.err = LL_ERROR_OK, .ruleset = NULL};
 
     const ll_abi_t policy_abi = ll_resolve_abi(ruleset_attr.abi);
     int kernel_abi = landlock_create_ruleset(NULL, 0, LANDLOCK_CREATE_RULESET_VERSION);
     if (kernel_abi < 0)
     {
-        return ll_error_from_create_ruleset_errno(errno);
+        out.err = ll_error_from_create_ruleset_errno(errno);
+        return out;
     }
 
     if (ruleset_attr.compat_mode == LL_ABI_COMPAT_STRICT && kernel_abi < policy_abi)
     {
-        return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RULESET_INCOMPATIBLE);
+        out.err = ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RULESET_INCOMPATIBLE);
+        return out;
     }
 
     ll_abi_t effective_abi = policy_abi;
@@ -411,21 +404,24 @@ ll_error_t ll_ruleset_create(const ll_ruleset_attr_t ruleset_attr,
 
     if (attr.handled_access_fs == 0 && attr.handled_access_net == 0 && attr.scoped == 0)
     {
-        return ll_error_with_errno(ENOMSG, LL_ERROR_RULESET_CREATE_EMPTY_ACCESS);
+        out.err = ll_error_with_errno(ENOMSG, LL_ERROR_RULESET_CREATE_EMPTY_ACCESS);
+        return out;
     }
 
     const int create_flags = (int)(ruleset_attr.flags);
     const int ruleset_fd = landlock_create_ruleset(&attr, sizeof(attr), create_flags);
     if (ruleset_fd < 0)
     {
-        return ll_error_from_create_ruleset_errno(errno);
+        out.err = ll_error_from_create_ruleset_errno(errno);
+        return out;
     }
 
     ll_ruleset_t *ruleset = malloc(sizeof(*ruleset));
     if (!ruleset)
     {
         close(ruleset_fd);
-        return ll_error_with_errno(ENOMEM, LL_ERROR_OUT_OF_MEMORY);
+        out.err = ll_error_with_errno(ENOMEM, LL_ERROR_OUT_OF_MEMORY);
+        return out;
     }
     ruleset->ruleset_fd = ruleset_fd;
     ruleset->abi = effective_abi;
@@ -442,22 +438,24 @@ ll_error_t ll_ruleset_create(const ll_ruleset_attr_t ruleset_attr,
             scope_before != ruleset->handled_access_scope)
         {
             ll_ruleset_close(ruleset);
-            return ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT);
+            out.err = ll_error_with_errno(EOPNOTSUPP, LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT);
+            return out;
         }
-        *out_ruleset = ruleset;
-        return LL_ERROR_OK;
+        out.ruleset = ruleset;
+        out.err = LL_ERROR_OK;
+        return out;
     }
-    else
+
+    out.ruleset = ruleset;
+    if (fs_before != ruleset->handled_access_fs ||
+        net_before != ruleset->handled_access_net ||
+        scope_before != ruleset->handled_access_scope)
     {
-        *out_ruleset = ruleset;
-        if (fs_before != ruleset->handled_access_fs ||
-            net_before != ruleset->handled_access_net ||
-            scope_before != ruleset->handled_access_scope)
-        {
-            return LL_ERROR_OK_PARTIAL_SANDBOX;
-        }
-        return LL_ERROR_OK;
+        out.err = LL_ERROR_OK_PARTIAL_SANDBOX;
+        return out;
     }
+    out.err = LL_ERROR_OK;
+    return out;
 }
 
 void ll_ruleset_close(ll_ruleset_t *const ruleset)

@@ -326,15 +326,23 @@ static inline ll_ruleset_attr_t ll_ruleset_attr_scope(ll_ruleset_attr_t attr, co
 }
 
 /**
+ * @brief Result container for ruleset creation.
+ */
+typedef struct
+{
+    ll_error_t err;
+    ll_ruleset_t *ruleset;
+} ll_ruleset_result_t;
+
+/**
  * @brief Create a ruleset from prepared attributes.
  *
  * @param ruleset_attr Initialized attributes.
- * @param result Optional sandboxing result summary.
- * @param out_ruleset Output handle on success.
- * @return LL_ERROR_OK on success, negative error code on failure.
+ * @return Result container with status in `err` and the ruleset handle in `ruleset` on success.
  *
  * @retval LL_ERROR_OK Success.
- * @retval LL_ERROR_INVALID_ARGUMENT Invalid argument (e.g., NULL attributes or output handle).
+ * @retval LL_ERROR_OK_PARTIAL_SANDBOX Success with partial sandboxing applied.
+ * @retval LL_ERROR_INVALID_ARGUMENT Invalid argument (e.g., NULL attributes).
  * @retval LL_ERROR_RULESET_INCOMPATIBLE Requested ABI is not supported in strict mode.
  * @retval LL_ERROR_RESTRICT_PARTIAL_SANDBOX_STRICT Requested access not supported in strict mode.
  * @retval LL_ERROR_OUT_OF_MEMORY Allocation failed.
@@ -346,27 +354,7 @@ static inline ll_ruleset_attr_t ll_ruleset_attr_scope(ll_ruleset_attr_t attr, co
  * @retval LL_ERROR_UNSUPPORTED_SYSCALL Required syscall not available.
  * @retval LL_ERROR_SYSTEM Other system error.
  */
-__attribute__((warn_unused_result)) ll_error_t ll_ruleset_create(const ll_ruleset_attr_t ruleset_attr,
-                                                                 ll_ruleset_t **const out_ruleset);
-
-/**
- * @brief Result container for ruleset creation.
- */
-typedef struct
-{
-    ll_error_t err;
-    ll_ruleset_t *ruleset;
-} ll_ruleset_result_t;
-
-/**
- * @brief Create a ruleset and return an error/result pair.
- */
-static inline ll_ruleset_result_t ll_ruleset_create_result(const ll_ruleset_attr_t attr)
-{
-    ll_ruleset_result_t out = {.err = LL_ERROR_OK, .ruleset = NULL};
-    out.err = ll_ruleset_create(attr, &out.ruleset);
-    return out;
-}
+__attribute__((warn_unused_result)) ll_ruleset_result_t ll_ruleset_create_result(const ll_ruleset_attr_t ruleset_attr);
 
 /**
  * @brief Close and free a ruleset handle.
